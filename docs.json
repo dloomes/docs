@@ -7,7 +7,7 @@
     "light": "#07C983",
     "dark": "#15803D"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "https://s3.amazonaws.com/helpscout.net/docs/assets/6548ee0bd38f6c41f54a42e8/images/6602ed1809d5bd1e74f496c2/Favicon.png",
   "navigation": {
     "tabs": [
       {
