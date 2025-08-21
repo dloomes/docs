@@ -56,7 +56,7 @@
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Scheduled Calls",
             "pages": [
               "api-reference/endpoint/get",
               "api-reference/endpoint/create",
@@ -64,7 +64,17 @@
               "api-reference/endpoint/getbyid",
               "api-reference/endpoint/updateappointment"
             ]
-          }
+          },
+          {
+            "group": "Scheduled Calls",
+            "pages": [
+              "api-reference/endpoint/get",
+              "api-reference/endpoint/create",
+              "api-reference/endpoint/delete",
+              "api-reference/endpoint/getbyid",
+              "api-reference/endpoint/updateappointment"
+            ]
+          },
         ]
       }
     ],
