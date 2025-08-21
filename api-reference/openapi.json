@@ -20,7 +20,7 @@
       "description": "SQOD Customer Server",
       "variables": {
         "customerRef": {
-          "default": "https://demo.app.sqod.co.uk",
+          "default": "",
           "description": "Enter your customer URL"
         }
       }
