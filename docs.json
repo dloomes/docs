@@ -64,7 +64,16 @@
               "api-reference/endpoint/getbyid",
               "api-reference/endpoint/updateappointment"
             ]
-          }
+          },
+          {
+            "group": "Waiting Areas",
+            "pages": [
+              "api-reference/endpoint/get",
+              "api-reference/endpoint/create",
+              "api-reference/endpoint/delete",
+              "api-reference/endpoint/getbyid",
+              "api-reference/endpoint/updateappointment"
+      }
         ]
       }
     ],
