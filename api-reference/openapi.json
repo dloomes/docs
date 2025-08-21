@@ -19,7 +19,7 @@
     }
   ],
   "paths": {
-    "/plants": {
+    "/appointments": {
       "get": {
         "description": "Returns all Appointments",
         "parameters": [
