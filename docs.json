@@ -11,14 +11,12 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Test",
+        "tab": "Documentation",
         "groups": [
           {
             "group": "Getting started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "index"
             ]
           },
           {
@@ -96,7 +94,7 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "href": "mailto:customer.support@involve.vc"
       }
     ],
     "primary": {
@@ -119,9 +117,8 @@
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/involvevc",
+      "linkedin": "https://www.linkedin.com/company/involve-visual-collaboration"
     }
   }
 }
