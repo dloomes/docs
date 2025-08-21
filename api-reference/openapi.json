@@ -228,7 +228,7 @@
                   },
                   "use_custom_post_call_redirect": {
                     "type": "boolean",
-                    "description": "Whether the custom post call redirect is used",
+                    "description": "Select true if a separate redirect is required for a caller",
                     "example": true
                   },
                   "custom_user_post_call_redirect_url": {
