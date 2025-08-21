@@ -1,58 +1,118 @@
 {
-  "openapi": "3.1.0",
+  "openapi": "3.0.0",
   "info": {
-    "title": "SQOD API",
-    "description": "A sample API that uses a plant store as an example to demonstrate features in the OpenAPI specification",
-    "license": {
-      "name": "MIT"
+    "title": "involve-api-updated",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Ed Marshall",
+      "email": "ed.marshall@hedgehoglab.com"
     },
-    "version": "1.0.0"
+    "description": "RESTful API specification for involve-api.\n\nAll endpoints are secured (unless indicated otherwise) and need a valid Bearer token passed in the Authorization header of the request.\n\nResponse model conventions:\n- Fields marked as \"required\" will have a value\n- Fields not marked as \"required\" can have a value, but may also be null, or may not be included in the response at all\n- Fields of type array may be empty (array with no items) unless validation indicates otherwise, however they are always \"required\"\n\nPatch update conventions:\n- Send only the fields you want to update with their new values\n- Fields marked as \"required\" cannot be unset/set to null, however they can be omitted from the request body if they should be left unchanged\n- The same rules also apply to fields inside nested objects\n\nGet collection conventions:\n- All paginated lists accept page and per_page query string parameters\n\nOther notes:\n- For sub-resources of the User resource, 'me' alias can be used instead of the user ID to work with currently authenticated user.\n- Expect 401 response in case of authentication problems, e.g. expired or invalid tokens.\n- Expect 403 response in case of authorisation problems, e.g. user doesn't have enough privileges to access a given resource.",
+    "license": {
+      "name": "Private",
+      "url": "https://example.com"
+    }
   },
   "servers": [
     {
-      "url": "http://*.app.sqod.co.uk/v1/"
-    }
-  ],
-  "security": [
+      "url": "http://*.localhost:8080",
+      "description": "local"
+    },
     {
-      "bearerAuth": []
+      "url": "https://*.dev.sqod.co.uk",
+      "description": "develop"
     }
   ],
   "paths": {
-    "/appointments": {
+    "/admin/sso/login": {
       "get": {
-        "description": "Returns all Appointments",
+        "summary": "Login in Nova via token",
+        "description": "Redirect login to Nova Panel using Cognito Token",
+        "operationId": "getSSOLogin",
+        "tags": [
+          "Nova"
+        ],
         "parameters": [
           {
-            "name": "limit",
+            "$ref": "#/components/parameters/Token"
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "The request has succeeded.\nRedirect to Nova Panel\n"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/appointments": {
+      "get": {
+        "summary": "Get appointments",
+        "description": "Get list of appointments based on the user's role",
+        "operationId": "getAppointments",
+        "parameters": [
+          {
+            "name": "start_at",
             "in": "query",
-            "description": "The maximum number of results to return",
+            "description": "The start datetime to filter appointment date",
+            "required": false,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "date-time",
+              "example": "2021-01-01T00:00:00.000Z"
             }
+          },
+          {
+            "name": "end_at",
+            "in": "query",
+            "description": "The end datetime to filter appointment date (required with `start_at`)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2021-01-01T00:00:00.000Z"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/PerPageParameter"
+          }
+        ],
+        "tags": [
+          "Appointment"
+        ],
+        "security": [
+          {
+            "Cognito": []
           }
         ],
         "responses": {
           "200": {
-            "description": "Appointment response",
+            "description": "A paginated list of appointments.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Plant"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AppointmentResource"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/MetaResource"
+                    },
+                    "links": {
+                      "$ref": "#/components/schemas/LinkResource"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta",
+                    "links"
+                  ]
                 }
               }
             }
@@ -60,35 +120,144 @@
         }
       },
       "post": {
-        "description": "Creates a new plant in the store",
+        "summary": "Create appointment",
+        "description": "Create appointment",
+        "operationId": "postCreateAppointment",
+        "tags": [
+          "Appointment"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
         "requestBody": {
-          "description": "Plant to add to the store",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewPlant"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "plant response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Plant"
+                "type": "object",
+                "properties": {
+                  "appointment_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The date and time of the appointment",
+                    "example": "2021-01-01T00:00:00.000Z"
+                  },
+                  "duration_in_minutes": {
+                    "type": "integer",
+                    "description": "The duration of the appointment in minutes",
+                    "example": 60
+                  },
+                  "department_id": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "is_interpreter_needed": {
+                    "type": "boolean",
+                    "description": "Whether an interpreter is needed for the appointment",
+                    "example": true
+                  },
+                  "interpreter_language": {
+                    "type": "string",
+                    "description": "The language of the interpreter",
+                    "example": "English"
+                  },
+                  "reference": {
+                    "type": "string",
+                    "description": "The reference of the appointment",
+                    "example": 123456789
+                  },
+                  "claimant": {
+                    "$ref": "#/components/schemas/Claimant"
+                  },
+                  "features_call_recording_enable": {
+                    "type": "boolean",
+                    "description": "Whether the call recording is enabled",
+                    "example": true
+                  },
+                  "features_breakout_room_enable": {
+                    "type": "boolean",
+                    "description": "Whether the breakout room is enabled",
+                    "example": true
+                  },
+                  "features_webcam_access_agent_enable": {
+                    "type": "boolean",
+                    "description": "Whether the webcam access for agent is enabled",
+                    "example": true
+                  },
+                  "features_webcam_access_claimant_enable": {
+                    "type": "boolean",
+                    "description": "Whether the webcam access for claimant is enabled",
+                    "example": true
+                  },
+                  "features_webcam_background_blurring_enable": {
+                    "type": "boolean",
+                    "description": "Whether the webcam background blurring is enabled",
+                    "example": true
+                  },
+                  "features_microphone_access_enable": {
+                    "type": "boolean",
+                    "description": "Whether the microphone access is enabled",
+                    "example": true
+                  },
+                  "features_screen_sharing_enable": {
+                    "type": "boolean",
+                    "description": "Whether the screen sharing is enabled",
+                    "example": true
+                  },
+                  "features_messages_chat_enable": {
+                    "type": "boolean",
+                    "description": "Whether the chat messages are enabled",
+                    "example": true
+                  },
+                  "features_participant_list_enable": {
+                    "type": "boolean",
+                    "description": "Whether the participant list is enabled",
+                    "example": true
+                  },
+                  "features_bandwidth": {
+                    "type": "string",
+                    "description": "The bandwidth of the appointment",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  },
+                  "use_custom_post_call_redirect": {
+                    "type": "boolean",
+                    "description": "Whether the custom post call redirect is used",
+                    "example": true
+                  },
+                  "custom_user_post_call_redirect_url": {
+                    "type": "string",
+                    "description": "The url of the custom post call redirect",
+                    "nullable": true
+                  },
+                  "custom_agent_post_call_redirect_url": {
+                    "type": "string",
+                    "description": "The url of the custom post call redirect for agent",
+                    "nullable": true
+                  }
                 }
               }
             }
-          },
-          "400": {
-            "description": "unexpected error",
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AppointmentResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
                 }
               }
             }
@@ -96,121 +265,4604 @@
         }
       }
     },
-    "/plants/{id}": {
-      "delete": {
-        "description": "Deletes a single plant based on the ID supplied",
-        "parameters": [
+    "/api/v1/appointments/{appointment}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Appointment"
+        }
+      ],
+      "get": {
+        "summary": "Get specific appointment",
+        "description": "Get specific appointment by ID",
+        "operationId": "getAppointmentById",
+        "tags": [
+          "Appointment"
+        ],
+        "security": [
           {
-            "name": "id",
-            "in": "path",
-            "description": "ID of plant to delete",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
+            "Cognito": []
           }
         ],
         "responses": {
-          "204": {
-            "description": "Plant deleted",
-            "content": {}
-          },
-          "400": {
-            "description": "unexpected error",
+          "200": {
+            "description": "The request has succeeded.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AppointmentResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
                 }
               }
             }
           }
         }
-      }
-    }
-  },
-  "webhooks": {
-    "/plant/webhook": {
-      "post": {
-        "description": "Information about a new plant added to the store",
+      },
+      "patch": {
+        "summary": "Update specific appointment",
+        "description": "Update specific appointment by ID",
+        "operationId": "patchAppointmentById",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PatchMethod"
+          }
+        ],
+        "tags": [
+          "Appointment"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
         "requestBody": {
-          "description": "Plant added to the store",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewPlant"
+                "type": "object",
+                "properties": {
+                  "appointment_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The date and time of the appointment",
+                    "example": "2021-01-01T00:00:00.000Z"
+                  },
+                  "duration_in_minutes": {
+                    "type": "integer",
+                    "description": "The duration of the appointment in minutes",
+                    "example": 60
+                  },
+                  "department_id": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "is_interpreter_needed": {
+                    "type": "boolean",
+                    "description": "Whether an interpreter is needed for the appointment",
+                    "example": true,
+                    "nullable": true
+                  },
+                  "interpreter_language": {
+                    "type": "string",
+                    "description": "The language of the interpreter",
+                    "example": "English",
+                    "nullable": true
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "The status of the appointment",
+                    "example": "waiting",
+                    "nullable": true
+                  },
+                  "claimant": {
+                    "$ref": "#/components/schemas/Claimant"
+                  },
+                  "features_call_recording_enable": {
+                    "type": "boolean",
+                    "description": "Whether the call recording is enabled",
+                    "example": true
+                  },
+                  "features_breakout_room_enable": {
+                    "type": "boolean",
+                    "description": "Whether the breakout room is enabled",
+                    "example": true
+                  },
+                  "features_webcam_access_agent_enable": {
+                    "type": "boolean",
+                    "description": "Whether the webcam access for agent is enabled",
+                    "example": true
+                  },
+                  "features_webcam_access_claimant_enable": {
+                    "type": "boolean",
+                    "description": "Whether the webcam access for claimant is enabled",
+                    "example": true
+                  },
+                  "features_webcam_background_blurring_enable": {
+                    "type": "boolean",
+                    "description": "Whether the webcam background blurring is enabled",
+                    "example": true
+                  },
+                  "features_microphone_access_enable": {
+                    "type": "boolean",
+                    "description": "Whether the microphone access is enabled",
+                    "example": true
+                  },
+                  "features_screen_sharing_enable": {
+                    "type": "boolean",
+                    "description": "Whether the screen sharing is enabled",
+                    "example": true
+                  },
+                  "features_messages_chat_enable": {
+                    "type": "boolean",
+                    "description": "Whether the chat messages are enabled",
+                    "example": true
+                  },
+                  "features_participant_list_enable": {
+                    "type": "boolean",
+                    "description": "Whether the participant list is enabled",
+                    "example": true
+                  },
+                  "features_bandwidth": {
+                    "type": "string",
+                    "description": "The bandwidth of the appointment",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  },
+                  "use_custom_post_call_redirect": {
+                    "type": "boolean",
+                    "description": "Whether the custom post call redirect is used",
+                    "example": true
+                  },
+                  "custom_user_post_call_redirect_url": {
+                    "type": "string",
+                    "description": "The url of the custom post call redirect",
+                    "nullable": true
+                  },
+                  "custom_agent_post_call_redirect_url": {
+                    "type": "string",
+                    "description": "The url of the custom post call redirect for agent",
+                    "nullable": true
+                  }
+                }
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Return a 200 status to indicate that the data was received successfully"
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AppointmentResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/appointments/{appointment}/cancel": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Appointment"
+        }
+      ],
+      "post": {
+        "summary": "Cancel specific appointment",
+        "description": "Cancel specific appointment by ID",
+        "operationId": "postCancelAppointment",
+        "tags": [
+          "Appointment"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cancellation_reason": {
+                    "type": "string",
+                    "description": "The reason for the appointment cancellation"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "The request has succeeded."
+          }
+        }
+      }
+    },
+    "/api/v1/appointments/{appointment}/messages": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Appointment"
+        }
+      ],
+      "post": {
+        "summary": "Create appointment message",
+        "description": "Create appointment message",
+        "operationId": "postAppointmentMessage",
+        "tags": [
+          "Appointment Message"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "The message to send",
+                    "example": "Hello World"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The request has succeeded and a new resource has been created as a result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AppointmentMessageResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Get appointment messages",
+        "description": "Get appointment messages",
+        "operationId": "getAppointmentMessages",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PerPageParameter"
+          }
+        ],
+        "tags": [
+          "Appointment Message"
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AppointmentMessageResource"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/MetaResource"
+                    },
+                    "links": {
+                      "$ref": "#/components/schemas/LinkResource"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta",
+                    "links"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/appointments/{appointment}/public": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Appointment"
+        }
+      ],
+      "patch": {
+        "summary": "Update specific appointment via public endpoint",
+        "description": "Update specific appointment by ID via public endpoint",
+        "operationId": "patchAppointmentByIdPublic",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PatchMethod"
+          }
+        ],
+        "tags": [
+          "Appointment"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "description": "The status of the appointment",
+                    "example": "waiting",
+                    "nullable": true,
+                    "enum": [
+                      "no_show",
+                      "late",
+                      "complete",
+                      "being_seen",
+                      "waiting",
+                      "scheduled",
+                      "cancelled",
+                      "on-hold"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AppointmentResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/appointments/reference/{reference}": {
+      "get": {
+        "summary": "Get appointment by reference",
+        "description": "Retrieve an appointment using its reference",
+        "operationId": "getAppointmentByReference",
+        "tags": [
+          "Appointment"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "description": "The reference of the appointment to retrieve",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AppointmentResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The given data was invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "properties": {
+                        "reference": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "summary": "Get all notifications",
+        "description": "Get all notifications",
+        "operationId": "getNotifications",
+        "tags": [
+          "Notification"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UnreadOnly"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/NotificationResource"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/MetaResource"
+                    },
+                    "links": {
+                      "$ref": "#/components/schemas/LinkResource"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta",
+                    "links"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete all read notifications",
+        "description": "Delete all read notifications",
+        "operationId": "deleteNotifications",
+        "tags": [
+          "Notification"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/204-NoContent"
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/mark": {
+      "post": {
+        "summary": "Mark Notifications as read",
+        "description": "Mark All or Specific Notifications as read",
+        "operationId": "markNotifications",
+        "tags": [
+          "Notification"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "notifications": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Uuid"
+                    },
+                    "description": "The list of notification IDs to mark as read. If not provided, all unread notifications will be marked as read.\n",
+                    "example": [
+                      "d290f1ee-6c54-4b01-90e6-d701748f0851",
+                      "d290f1ee-6c54-4b01-90e6-d701748f0852"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/204-NoContent"
+          }
+        }
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "summary": "Get the current user",
+        "description": "Get data about the current user",
+        "operationId": "getMe",
+        "tags": [
+          "Account"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "summary": "Search users",
+        "description": "Searches users based on the given query. Returns users that belong to the same department as the department admin or returns all users for tenant admins.\n",
+        "operationId": "getSearchUsers",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "description": "The search query string",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UserResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas": {
+      "get": {
+        "summary": "Get waiting areas",
+        "description": "Get list of waiting areas based on the user's role",
+        "operationId": "getWaitingAreas",
+        "tags": [
+          "Waiting Area"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PerPageParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A paginated list of waiting areas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WaitingAreaResource"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/MetaResource"
+                    },
+                    "links": {
+                      "$ref": "#/components/schemas/LinkResource"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta",
+                    "links"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a waiting area",
+        "description": "Create a waiting area\n\nNote:\n  - The `theme_hero_banner_file` file will be uploaded using a separate endpoint.\n",
+        "operationId": "postCreateWaitingArea",
+        "tags": [
+          "Waiting Area"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "custom_identifier": {
+                    "type": "string"
+                  },
+                  "department_id": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "additional_departments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/components/schemas/Uuid"
+                        },
+                        "permission": {
+                          "$ref": "#/components/schemas/WaitingAreaPermissions"
+                        }
+                      }
+                    },
+                    "nullable": true
+                  },
+                  "additional_documents": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "$ref": "#/components/schemas/Translatable"
+                        },
+                        "url": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "nullable": true
+                  },
+                  "assigned_users": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/components/schemas/Uuid"
+                        },
+                        "permission": {
+                          "$ref": "#/components/schemas/WaitingAreaPermissions"
+                        }
+                      }
+                    },
+                    "nullable": true
+                  },
+                  "data_fields": {
+                    "type": "array",
+                    "nullable": true,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "$ref": "#/components/schemas/WaitingAreaDataFieldTypes"
+                        },
+                        "name": {
+                          "$ref": "#/components/schemas/Translatable"
+                        },
+                        "required": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  },
+                  "schedules": {
+                    "type": "array",
+                    "nullable": false,
+                    "minItems": 7,
+                    "items": {
+                      "$ref": "#/components/schemas/WaitingAreaScheduleResource"
+                    }
+                  },
+                  "agent_post_call_redirent_link": {
+                    "type": "string",
+                    "description": "The link to redirect the agent to after a call",
+                    "example": "https://www.google.com"
+                  },
+                  "claimant_post_call_redirent_link": {
+                    "type": "string",
+                    "description": "The link to redirect the claimant to after a call",
+                    "example": "https://www.google.com"
+                  },
+                  "holding_page_redirent_link": {
+                    "type": "string",
+                    "description": "The link to redirect to for the holding page",
+                    "example": "https://www.google.com"
+                  },
+                  "features_call_recording_enable": {
+                    "type": "boolean",
+                    "description": "Whether call recording is enabled",
+                    "example": true
+                  },
+                  "features_breakout_room_enable": {
+                    "type": "boolean",
+                    "description": "Whether breakout rooms are enabled",
+                    "example": true
+                  },
+                  "features_webcam_access_agent_enable": {
+                    "type": "boolean",
+                    "description": "Whether webcam access is enabled for agents",
+                    "example": true
+                  },
+                  "features_webcam_access_claimant_enable": {
+                    "type": "boolean",
+                    "description": "Whether webcam access is enabled for claimants",
+                    "example": true
+                  },
+                  "features_webcam_background_blurring_enable": {
+                    "type": "boolean",
+                    "description": "Whether webcam background blurring is enabled",
+                    "example": true
+                  },
+                  "features_microphone_access_enable": {
+                    "type": "boolean",
+                    "description": "Whether microphone access is enabled",
+                    "example": true
+                  },
+                  "features_screen_sharing_enable": {
+                    "type": "boolean",
+                    "description": "Whether screen sharing is enabled",
+                    "example": true
+                  },
+                  "features_messages_chat_enable": {
+                    "type": "boolean",
+                    "description": "Whether chat messages are enabled",
+                    "example": true
+                  },
+                  "features_participant_list_enable": {
+                    "type": "boolean",
+                    "description": "Whether the participant list is enabled",
+                    "example": true
+                  },
+                  "features_bandwidth": {
+                    "type": "string",
+                    "description": "The bandwidth setting",
+                    "example": "high"
+                  },
+                  "messages_welcome_message": {
+                    "$ref": "#/components/schemas/Translatable"
+                  },
+                  "messages_holding_message": {
+                    "$ref": "#/components/schemas/Translatable"
+                  },
+                  "messages_post_call_message": {
+                    "$ref": "#/components/schemas/Translatable"
+                  },
+                  "messages_sms_default_message": {
+                    "$ref": "#/components/schemas/Translatable"
+                  },
+                  "messages_email_default_message": {
+                    "$ref": "#/components/schemas/Translatable"
+                  },
+                  "theme_waiting_area_video_url": {
+                    "type": "string",
+                    "description": "The waiting area video URL",
+                    "example": "https://www.youtube.com/watch?v=1234567890"
+                  },
+                  "theme_waiting_area_hold_music_url": {
+                    "type": "string",
+                    "description": "The waiting area hold music URL",
+                    "example": "https://www.youtube.com/watch?v=1234567890"
+                  },
+                  "theme_color": {
+                    "type": "string",
+                    "description": "The theme color",
+                    "example": "#000000"
+                  },
+                  "support_page_content": {
+                    "$ref": "#/components/schemas/Translatable"
+                  },
+                  "alert_phone_number": {
+                    "type": "string",
+                    "description": "The phone number to send alerts to",
+                    "example": 447123456789,
+                    "nullable": true
+                  },
+                  "alert_time_in_minutes": {
+                    "type": "integer",
+                    "description": "The time in minutes to send alerts after the user joined the room",
+                    "example": 5,
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitingAreaDetailResource"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/access/{link}": {
+      "get": {
+        "summary": "Access a waiting room using a unique link",
+        "operationId": "getRoomByUniqueLink",
+        "tags": [
+          "Waiting Area",
+          "Room"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SingleUseLink"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully accessed the waiting room",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomDetailResource"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        }
+      ],
+      "get": {
+        "summary": "Get waiting area by id",
+        "description": "Get waiting area by id",
+        "operationId": "getWaitingAreaById",
+        "tags": [
+          "Waiting Area"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/WaitingAreaResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update a waiting area",
+        "description": "Update a waiting area",
+        "operationId": "patchWaitingArea",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PatchMethod"
+          }
+        ],
+        "tags": [
+          "Waiting Area"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "custom_identifier": {
+                    "type": "string"
+                  },
+                  "department_id": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "additional_departments": {
+                    "type": "array",
+                    "description": "This field acts as a `sync` operation, meaning that the departments \nthat are passed in will be the only departments that are assigned to\nthe waiting area. Any departments that are not passed in will be\nremoved from the waiting area.\n",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/components/schemas/Uuid"
+                        },
+                        "permission": {
+                          "$ref": "#/components/schemas/WaitingAreaPermissions"
+                        }
+                      }
+                    },
+                    "nullable": true
+                  },
+                  "additional_documents": {
+                    "type": "array",
+                    "description": "When an item has an `id` property, it will be updated. \nWhen an item does not have an `id` property, it will be created.\nWhen an item has a `deleted_at` property, it will be deleted.\n",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/components/schemas/Uuid"
+                        },
+                        "name": {
+                          "$ref": "#/components/schemas/Translatable"
+                        },
+                        "url": {
+                          "type": "string"
+                        },
+                        "deleted_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "nullable": true
+                  },
+                  "assigned_users": {
+                    "type": "array",
+                    "description": "This field acts as a `sync` operation, meaning that the users\nthat are passed in will be the only users that are assigned to\nthe waiting area. Any users that are not passed in will be\nremoved from the waiting area.\n",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/components/schemas/Uuid"
+                        },
+                        "permission": {
+                          "$ref": "#/components/schemas/WaitingAreaPermissions"
+                        }
+                      }
+                    },
+                    "nullable": true
+                  },
+                  "data_fields": {
+                    "type": "array",
+                    "description": "When an item has an `id` property, it will be updated. \nWhen an item does not have an `id` property, it will be created.\nWhen an item has a `deleted_at` property, it will be deleted.\n",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/components/schemas/Uuid"
+                        },
+                        "type": {
+                          "$ref": "#/components/schemas/WaitingAreaDataFieldTypes"
+                        },
+                        "name": {
+                          "$ref": "#/components/schemas/Translatable"
+                        },
+                        "required": {
+                          "type": "boolean"
+                        },
+                        "deleted_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  },
+                  "schedules": {
+                    "type": "array",
+                    "nullable": false,
+                    "minItems": 7,
+                    "items": {
+                      "$ref": "#/components/schemas/WaitingAreaScheduleResource"
+                    }
+                  },
+                  "agent_post_call_redirent_link": {
+                    "type": "string",
+                    "description": "The link to redirect the agent to after a call",
+                    "example": "https://www.google.com"
+                  },
+                  "claimant_post_call_redirent_link": {
+                    "type": "string",
+                    "description": "The link to redirect the claimant to after a call",
+                    "example": "https://www.google.com"
+                  },
+                  "holding_page_redirent_link": {
+                    "type": "string",
+                    "description": "The link to redirect to for the holding page",
+                    "example": "https://www.google.com"
+                  },
+                  "features_call_recording_enable": {
+                    "type": "boolean",
+                    "description": "Whether call recording is enabled",
+                    "example": true
+                  },
+                  "features_breakout_room_enable": {
+                    "type": "boolean",
+                    "description": "Whether breakout rooms are enabled",
+                    "example": true
+                  },
+                  "features_webcam_access_agent_enable": {
+                    "type": "boolean",
+                    "description": "Whether webcam access is enabled for agents",
+                    "example": true
+                  },
+                  "features_webcam_access_claimant_enable": {
+                    "type": "boolean",
+                    "description": "Whether webcam access is enabled for claimants",
+                    "example": true
+                  },
+                  "features_webcam_background_blurring_enable": {
+                    "type": "boolean",
+                    "description": "Whether webcam background blurring is enabled",
+                    "example": true
+                  },
+                  "features_microphone_access_enable": {
+                    "type": "boolean",
+                    "description": "Whether microphone access is enabled",
+                    "example": true
+                  },
+                  "features_screen_sharing_enable": {
+                    "type": "boolean",
+                    "description": "Whether screen sharing is enabled",
+                    "example": true
+                  },
+                  "features_messages_chat_enable": {
+                    "type": "boolean",
+                    "description": "Whether chat messages are enabled",
+                    "example": true
+                  },
+                  "features_participant_list_enable": {
+                    "type": "boolean",
+                    "description": "Whether the participant list is enabled",
+                    "example": true
+                  },
+                  "features_bandwidth": {
+                    "type": "string",
+                    "description": "The bandwidth setting",
+                    "example": "high"
+                  },
+                  "messages_welcome_message": {
+                    "$ref": "#/components/schemas/Translatable"
+                  },
+                  "messages_holding_message": {
+                    "$ref": "#/components/schemas/Translatable"
+                  },
+                  "messages_post_call_message": {
+                    "$ref": "#/components/schemas/Translatable"
+                  },
+                  "messages_sms_default_message": {
+                    "$ref": "#/components/schemas/Translatable"
+                  },
+                  "messages_email_default_message": {
+                    "$ref": "#/components/schemas/Translatable"
+                  },
+                  "theme_waiting_area_video_url": {
+                    "type": "string",
+                    "description": "The waiting area video URL",
+                    "example": "https://www.youtube.com/watch?v=1234567890"
+                  },
+                  "theme_waiting_area_hold_music_url": {
+                    "type": "string",
+                    "description": "The waiting area hold music URL",
+                    "example": "https://www.youtube.com/watch?v=1234567890"
+                  },
+                  "theme_color": {
+                    "type": "string",
+                    "description": "The theme color",
+                    "example": "#000000"
+                  },
+                  "support_page_content": {
+                    "$ref": "#/components/schemas/Translatable"
+                  },
+                  "alert_phone_number": {
+                    "type": "string",
+                    "description": "The phone number to send alerts to",
+                    "example": 447123456789,
+                    "nullable": true
+                  },
+                  "alert_time_in_minutes": {
+                    "type": "integer",
+                    "description": "The time in minutes to send alerts after the user joined the room",
+                    "example": 5,
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitingAreaDetailResource",
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a waiting area",
+        "description": "Delete a waiting area",
+        "operationId": "deleteWaitingArea",
+        "tags": [
+          "Waiting Area"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The request has succeeded."
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/invite": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        }
+      ],
+      "post": {
+        "summary": "Send an invite to a waiting area",
+        "description": "Send an invite to a waiting area. The invite message can be customised using the invite_message parameter. \n\nThe message will automatically include the link to the waiting area and the name of the waiting area. \n\nThe link to the waiting area can be included in the invite message using **{{link}}** and the name of the waiting area can be included using **{{waiting_area_name}}**.\n",
+        "operationId": "postWaitingAreaInvite",
+        "tags": [
+          "Waiting Area"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "description": "The type of invite to send",
+                    "example": "email",
+                    "enum": [
+                      "email",
+                      "sms"
+                    ]
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "The email address to send the invite to. Required if type is email.",
+                    "example": "test@test.com",
+                    "nullable": true
+                  },
+                  "phone_number": {
+                    "type": "string",
+                    "description": "The phone number to send the invite to. Required if type is sms.",
+                    "example": 123456789,
+                    "nullable": true
+                  },
+                  "invite_message": {
+                    "type": "string",
+                    "description": "The message to send with the invite. Will automatically include the link to the waiting area. Use {{waiting_area_name}} and {{link}} to include the name of the waiting area and the link to the waiting area respectively.",
+                    "example": "Join {{waiting_area_name}} at {{link}}",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "The request has succeeded."
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/messages": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        }
+      ],
+      "post": {
+        "summary": "Create a Waiting Area Message",
+        "description": "Create a Waiting Area Message",
+        "operationId": "postCreateWaitingAreaMessage",
+        "tags": [
+          "Waiting Area Messages"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "The message to send",
+                    "example": "Hello"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The request has succeeded and a new resource has been created as a result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/WaitingAreaMessageResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Get Waiting Area Messages",
+        "description": "Get Waiting Area Messages",
+        "operationId": "getWaitingAreaMessages",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PerPageParameter"
+          }
+        ],
+        "tags": [
+          "Waiting Area Messages"
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WaitingAreaMessageResource"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/MetaResource"
+                    },
+                    "links": {
+                      "$ref": "#/components/schemas/LinkResource"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta",
+                    "links"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/public": {
+      "parameters": [
+        {
+          "name": "waiting_area",
+          "in": "path",
+          "description": "The primary UUID of the waiting area OR the custom identifier of the waiting area",
+          "required": true,
+          "schema": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Uuid"
+              },
+              {
+                "type": "string",
+                "description": "The custom identifier of the waiting area",
+                "example": "waiting-area-1"
+              }
+            ]
+          }
+        }
+      ],
+      "get": {
+        "summary": "Get waiting area public details by id or custom identifier",
+        "description": "Get waiting area public details by id or custom identifier",
+        "operationId": "getWaitingAreaPublicById",
+        "tags": [
+          "Waiting Area"
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/WaitingAreaPublicDetailResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        }
+      ],
+      "get": {
+        "summary": "Get rooms that are in progress only",
+        "description": "Get rooms that are in progress only",
+        "operationId": "listRooms",
+        "tags": [
+          "Waiting Area",
+          "Room"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WaitingArea"
+          },
+          {
+            "$ref": "#/components/parameters/PerPageParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A paginated list of rooms.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RoomResource"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/MetaResource"
+                    },
+                    "links": {
+                      "$ref": "#/components/schemas/LinkResource"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta",
+                    "links"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a room",
+        "description": "Create a room",
+        "operationId": "postCreateRoom",
+        "tags": [
+          "Waiting Area",
+          "Room"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "callers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "The name of the caller",
+                          "example": "John Smith"
+                        },
+                        "phone_number": {
+                          "type": "string",
+                          "description": "The phone number of the caller",
+                          "example": 1234567890
+                        },
+                        "date_of_birth": {
+                          "type": "string",
+                          "format": "date",
+                          "description": "The date of birth of the caller",
+                          "example": "2000-01-01"
+                        },
+                        "accepted_terms_and_conditions": {
+                          "type": "boolean",
+                          "description": "Whether the caller has accepted the terms and conditions",
+                          "example": true
+                        },
+                        "data_fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "description": "The id of the data field"
+                              },
+                              "value": {
+                                "type": "string",
+                                "description": "The value of the data field"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "description": "The callers to add to the room"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomDetailResource",
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms/{room}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        },
+        {
+          "$ref": "#/components/parameters/Room"
+        }
+      ],
+      "patch": {
+        "summary": "Update a room",
+        "description": "Update a room",
+        "operationId": "patchRoom",
+        "tags": [
+          "Waiting Area",
+          "Room"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "waiting",
+                      "being-seen",
+                      "on-hold"
+                    ],
+                    "description": "The status of the room",
+                    "example": "waiting"
+                  },
+                  "waiting_ended_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The time the room ended waiting",
+                    "example": "2020-01-01T00:00:00+00:00"
+                  },
+                  "on_hold_started_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The time the room started being on hold",
+                    "example": "2020-01-01T00:00:00+00:00"
+                  },
+                  "on_hold_ended_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The time the room ended being on hold",
+                    "example": "2020-01-01T00:00:00+00:00"
+                  },
+                  "call_started_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The time the room started being seen",
+                    "example": "2020-01-01T00:00:00+00:00"
+                  },
+                  "call_ended_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The time the room ended being seen",
+                    "example": "2020-01-01T00:00:00+00:00"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomDetailResource",
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a room",
+        "description": "Delete a room",
+        "operationId": "deleteRoom",
+        "tags": [
+          "Waiting Area",
+          "Room"
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/204-NoContent"
+          },
+          "403": {
+            "$ref": "#/components/responses/403-Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms/{room}/callers": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        },
+        {
+          "$ref": "#/components/parameters/Room"
+        }
+      ],
+      "post": {
+        "summary": "Add a caller to a room",
+        "description": "Add a caller to a room",
+        "operationId": "postRoomCallers",
+        "tags": [
+          "Room"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "first_name": {
+                    "type": "string",
+                    "description": "The first name of the caller",
+                    "example": "John"
+                  },
+                  "last_name": {
+                    "type": "string",
+                    "description": "The last name of the caller",
+                    "example": "Smith"
+                  },
+                  "phone_number": {
+                    "type": "string",
+                    "description": "The phone number of the caller",
+                    "example": 1234567890
+                  },
+                  "date_of_birth": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "The date of birth of the caller",
+                    "example": "2000-01-01"
+                  },
+                  "accepted_terms_and_conditions": {
+                    "type": "boolean",
+                    "description": "Whether the caller has accepted the terms and conditions",
+                    "example": true
+                  },
+                  "data_fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "The id of the data field"
+                        },
+                        "value": {
+                          "type": "string",
+                          "description": "The value of the data field"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomDetailResource",
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms/{room}/callers/{caller}/connect": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        },
+        {
+          "$ref": "#/components/parameters/Room"
+        },
+        {
+          "$ref": "#/components/parameters/Caller"
+        }
+      ],
+      "post": {
+        "summary": "Will update the caller status to connected",
+        "description": "Will update the caller status to connected\n\nThis will also trigger the **RoomCallerHasConnectedEvent** event.\n",
+        "operationId": "postRoomCallerConnect",
+        "tags": [
+          "Room"
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/204-NoContent"
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms/{room}/callers/{caller}/disconnect": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        },
+        {
+          "$ref": "#/components/parameters/Room"
+        },
+        {
+          "$ref": "#/components/parameters/Caller"
+        }
+      ],
+      "post": {
+        "summary": "Will update the caller status to disconnected",
+        "description": "Will update the caller status to disconnected\n\nThis will also trigger the **RoomCallerHasDisconnectedEvent** event.\n",
+        "operationId": "postRoomCallerDisconnect",
+        "tags": [
+          "Room"
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/204-NoContent"
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms/{room}/end-meeting": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        },
+        {
+          "$ref": "#/components/parameters/Room"
+        }
+      ],
+      "post": {
+        "summary": "End the Room Meeting",
+        "description": "End the Room Meeting. This will end the call and delete the whereby meeting.\n",
+        "operationId": "postRoomEndMeeting",
+        "tags": [
+          "Room"
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/204-NoContent"
+          },
+          "403": {
+            "$ref": "#/components/responses/403-Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms/{room}/generate-link": {
+      "post": {
+        "summary": "Generate a unique link for a waiting room",
+        "operationId": "postGenerateUniqueLink",
+        "tags": [
+          "Waiting Area",
+          "Room"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WaitingArea"
+          },
+          {
+            "$ref": "#/components/parameters/Room"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Unique link generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SingleUseLinkResource"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms/{room}/host": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        },
+        {
+          "$ref": "#/components/parameters/Room"
+        }
+      ],
+      "get": {
+        "summary": "Get a room for host",
+        "description": "Get a room for host that will contain the host room url",
+        "operationId": "getHostRoom",
+        "tags": [
+          "Waiting Area",
+          "Room"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomDetailResource",
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms/{room}/host/assign": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        },
+        {
+          "$ref": "#/components/parameters/Room"
+        }
+      ],
+      "post": {
+        "summary": "Assign a host to a room",
+        "description": "Assign a host to a room",
+        "operationId": "postAssignRoomHost",
+        "tags": [
+          "Waiting Area",
+          "Room"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The request has succeeded."
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms/{room}/invite": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        },
+        {
+          "$ref": "#/components/parameters/Room"
+        }
+      ],
+      "post": {
+        "summary": "Send an invite to a waiting room",
+        "description": "Send an invite to a waiting room",
+        "operationId": "postRoomInvite",
+        "tags": [
+          "Waiting Area",
+          "Room"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "description": "The type of invite to send",
+                    "example": "email",
+                    "enum": [
+                      "email",
+                      "sms"
+                    ]
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "The email address to send the invite to. Required if type is email.",
+                    "example": "test@test.com",
+                    "nullable": true
+                  },
+                  "phone_number": {
+                    "type": "string",
+                    "description": "The phone number to send the invite to. Required if type is sms.",
+                    "example": 123456789,
+                    "nullable": true
+                  },
+                  "invite_message": {
+                    "type": "string",
+                    "example": "Test Message",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/204-NoContent"
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms/{room}/messages": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        },
+        {
+          "$ref": "#/components/parameters/Room"
+        }
+      ],
+      "post": {
+        "summary": "Create a Room Message",
+        "description": "Create a Room Message",
+        "operationId": "postCreateRoomMessage",
+        "tags": [
+          "Room Messages"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "The message to send",
+                    "example": "Hello"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The request has succeeded and a new resource has been created as a result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/WaitingAreaMessageResource"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Get Room Messages",
+        "description": "Get Room Messages",
+        "operationId": "getRoomMessages",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PerPageParameter"
+          },
+          {
+            "name": "for_room_only",
+            "in": "query",
+            "description": "Whether to only get messages from the room. If false, messages from the waiting area will also be included.",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "tags": [
+          "Room Messages"
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WaitingAreaMessageResource"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/MetaResource"
+                    },
+                    "links": {
+                      "$ref": "#/components/schemas/LinkResource"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta",
+                    "links"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms/{room}/hold": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        },
+        {
+          "$ref": "#/components/parameters/Room"
+        }
+      ],
+      "post": {
+        "summary": "Put the Room Call on Hold",
+        "description": "Put the Room Call on Hold. This will stop the call and put the room on hold.\n\nThis will also trigger the `RoomOnHoldStarted` Event.\n",
+        "operationId": "postRoomOnHold",
+        "tags": [
+          "Room"
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/204-NoContent"
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms/{room}/resume": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        },
+        {
+          "$ref": "#/components/parameters/Room"
+        }
+      ],
+      "post": {
+        "summary": "Resume the Room Call from on hold",
+        "description": "Resume the Room Call from on hold. This will resume the call and remove the room from hold.\n\nThis will also trigger the `RoomCallResumed` Event.\n",
+        "operationId": "postRoomCallResume",
+        "tags": [
+          "Room"
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/204-NoContent"
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms/{room}/transfer": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        },
+        {
+          "$ref": "#/components/parameters/Room"
+        }
+      ],
+      "post": {
+        "summary": "Transfer a room",
+        "description": "Transfer a room to another waiting area\n\nThis will also trigger the `RoomTransferedEvent` event\n",
+        "operationId": "transferRoom",
+        "tags": [
+          "Waiting Area",
+          "Room"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "new_waiting_area_id": {
+                    "$ref": "#/components/schemas/Uuid"
+                  }
+                },
+                "required": [
+                  "new_waiting_area_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/204-NoContent"
+          },
+          "422": {
+            "$ref": "#/components/responses/422-UnprocessableEntity"
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms/{room}/viewer": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        },
+        {
+          "$ref": "#/components/parameters/Room"
+        }
+      ],
+      "get": {
+        "summary": "Get a room for viewer",
+        "description": "Get a room for viewer that will contain the viewer room url",
+        "operationId": "getViewerRoom",
+        "tags": [
+          "Waiting Area",
+          "Room"
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomDetailResource",
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/rooms/merge": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        }
+      ],
+      "post": {
+        "summary": "Will merge all rooms into one",
+        "description": "Will merge all rooms into one. The rooms will be merged into the first room in the list. Will return the room that the other rooms were merged into.\n\nThis will trigger the `TransitionToNewRoomEvent` event for all the rooms that were merged into the first room in the channel `hookable-public.{subdomain}.room.{oldRoomId}`\n",
+        "operationId": "mergeRooms",
+        "tags": [
+          "Room"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "is_all_rooms": {
+                    "type": "boolean",
+                    "description": "If true, all rooms that is in `waiting` status will be merged into the first room in the list and this will ignore the `rooms` property",
+                    "example": true
+                  },
+                  "rooms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "The room id",
+                      "example": "9a0f170e-0aa0-47db-ab14-4ddcdcbad061"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomDetailResource",
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-areas/{waiting_area}/users": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        }
+      ],
+      "get": {
+        "summary": "Search users based on the permissions of the user in the waiting area",
+        "description": "Searches users based on the permissions of the user in the waiting area. Returns users that belong to the same department as the department admin or returns all users for tenant admins.\n\nAgents and Tenant Schedulers must have Full Access to the waiting area to be able to search for users.\n",
+        "operationId": "getWaitingAreaUsers",
+        "tags": [
+          "Waiting Area"
+        ],
+        "security": [
+          {
+            "Cognito": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "description": "The search query string",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/UserResource"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/MetaResource"
+                    },
+                    "links": {
+                      "$ref": "#/components/schemas/LinkResource"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta",
+                    "links"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/403-Forbidden"
+          }
+        }
+      }
+    },
+    "/hookable-public.{subdomain}.appointment.{appointment}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Subdomain"
+        },
+        {
+          "$ref": "#/components/parameters/Appointment"
+        }
+      ],
+      "get": {
+        "summary": "Public channel for appointment",
+        "description": "Events:\n- **AppointmentEnded**\n- **NewAppointmentMessage**\n- **AppointmentJoined**\n- **AppointmentLeft**\n- **AppointmentSessionStart**\n",
+        "operationId": "publicChannelAppointmentById",
+        "tags": [
+          "Pusher Channels"
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded."
+          }
+        }
+      }
+    },
+    "/hookable-public.{subdomain}.room.{room}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Subdomain"
+        },
+        {
+          "$ref": "#/components/parameters/Room"
+        }
+      ],
+      "get": {
+        "summary": "Public channel for rooms",
+        "description": "Events:\n- **RoomIsReady**\n- **RoomJoined**\n- **RoomLeft**\n- **RoomSessionStart**\n- **RoomSessionEnd**\n- **NewRoomMessage**\n- **RoomCallerHasConnectedEvent**\n- **RoomCallerHasDisconnectedEvent**\n",
+        "operationId": "publicChannelRoomById",
+        "tags": [
+          "Pusher Channels"
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded."
+          }
+        }
+      }
+    },
+    "/hookable-public.{subdomain}.waiting-area.{waiting_area}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Subdomain"
+        },
+        {
+          "$ref": "#/components/parameters/WaitingArea"
+        }
+      ],
+      "get": {
+        "summary": "Public channel for waiting area",
+        "description": "Events:\n- **RoomJoined**\n- **RoomLeft**\n- **RoomSessionStart**\n- **RoomSessionEnd**\n- **NewWaitingAreaMessage**\n- **RoomCallerHasConnectedEvent**\n- **RoomCallerHasDisconnectedEvent**\n",
+        "operationId": "publicChannelWaitingAreaById",
+        "tags": [
+          "Pusher Channels"
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded."
+          }
+        }
+      }
+    },
+    "/tenant.{tenant}.users.{user}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Tenant"
+        },
+        {
+          "$ref": "#/components/parameters/User"
+        }
+      ],
+      "get": {
+        "summary": "Private channel for Tenant User notifications",
+        "description": "Echo Setup:\n```javascript\nlet laravelEcho = new Echo({\n  ... // other configurations\n  auth:{\n    headers:{\n      'Authorization': `Bearer ${bearerToken}`\n    }\n  },\n  authEndpoint: 'https://{subdomain}.dev.sqod.co.uk/api/broadcasting/auth'\n});\n```\nSince this channel is a private channel, it requires a valid `Bearer` token to authenticate the user.\nMake sure to update the `authEndpoint` to the correct URL with the correct subdomain. As well as the `auth` headers to include the correct `Bearer` token.\n",
+        "operationId": "privateChannelTenantUser",
+        "tags": [
+          "Pusher Channels"
+        ],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded."
           }
         }
       }
     }
   },
   "components": {
+    "securitySchemes": {
+      "Cognito": {
+        "type": "http",
+        "description": "See https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-with-identity-providers.html for request and response details",
+        "scheme": "bearer"
+      }
+    },
+    "parameters": {
+      "Token": {
+        "name": "token",
+        "in": "query",
+        "description": "The cognito token of the user",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "PerPageParameter": {
+        "name": "per_page",
+        "in": "query",
+        "description": "Number of items per page",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 1,
+          "example": 10
+        }
+      },
+      "Appointment": {
+        "name": "appointment",
+        "in": "path",
+        "description": "The Uuid of the required appointment model",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Uuid"
+        }
+      },
+      "PatchMethod": {
+        "name": "_method",
+        "description": "There is a bug in Laravel where using PATCH as the method when making a request will not work when submitting with a Content-Type of `multipart/form-data`.\n\nTo fix this, the client needs to use `POST` as the method and add a `_method` query parameter and set its value to `PATCH`. This will still route to the `PATCH` route in laravel.\n\nNote: this is only needed for `PATCH` endpoints.\n",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "PATCH"
+          ]
+        }
+      },
+      "FileName": {
+        "name": "file_name",
+        "in": "query",
+        "description": "The file name of the example file",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "waiting_area_user_upload.csv",
+            "example.csv",
+            "example.xls",
+            "example.xlsx"
+          ]
+        }
+      },
+      "UnreadOnly": {
+        "name": "unread_only",
+        "in": "query",
+        "description": "If true, only unread notifications will be returned, else all notifications will be returned.\n\n**Note:** Due  to Laravel validation of boolean, it will only accept 1 or 0 as a value\n",
+        "required": false,
+        "schema": {
+          "type": "boolean",
+          "default": 0,
+          "example": 1
+        }
+      },
+      "Tenant": {
+        "name": "tenant",
+        "in": "path",
+        "description": "The Uuid of the required Tenant model",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Uuid"
+        }
+      },
+      "User": {
+        "name": "user",
+        "in": "path",
+        "description": "The Uuid of the required User model",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Uuid"
+        }
+      },
+      "SingleUseLink": {
+        "name": "link",
+        "in": "path",
+        "description": "the single use link to access the required room model",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/SingleUseLink"
+        }
+      },
+      "WaitingArea": {
+        "name": "waiting_area",
+        "in": "path",
+        "description": "the UUID of the required waiting area model",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Uuid"
+        }
+      },
+      "Room": {
+        "name": "room",
+        "in": "path",
+        "description": "the UUID of the required room model",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Uuid"
+        }
+      },
+      "Caller": {
+        "name": "caller",
+        "in": "path",
+        "description": "the UUID of the required caller model",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Uuid"
+        }
+      },
+      "Subdomain": {
+        "name": "subdomain",
+        "in": "path",
+        "description": "The customer subdomain",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
     "schemas": {
-      "Plant": {
-        "required": [
-          "name"
-        ],
+      "MetricValue": {
+        "title": "Metric Value",
+        "oneOf": [
+          {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "example": "2021-01-01"
+                },
+                "value": {
+                  "type": "number"
+                }
+              }
+            },
+            "description": "This represents a trend of the metric",
+            "example": [
+              {
+                "label": "2021-01-01",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "type": "number",
+            "description": "This represents a count/average/sum of the metric",
+            "example": 10
+          }
+        ]
+      },
+      "Uuid": {
+        "title": "id",
+        "description": "Resource identifier as a UUID",
+        "type": "string",
+        "example": "9a0f170e-0aa0-47db-ab14-4ddcdcbad061"
+      },
+      "WaitingAreaScheduleResource": {
+        "title": "Waiting Area Schedule",
         "type": "object",
         "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid",
+            "nullable": true
+          },
+          "day": {
+            "type": "string",
+            "enum": [
+              "monday",
+              "tuesday",
+              "wednesday",
+              "thursday",
+              "friday",
+              "saturday",
+              "sunday"
+            ]
+          },
+          "opens_at": {
+            "type": "string",
+            "format": "time",
+            "description": "The time the waiting area opens",
+            "example": "08:30:00"
+          },
+          "closes_at": {
+            "type": "string",
+            "format": "time",
+            "description": "The time the waiting area closes",
+            "example": "17:00:00"
+          },
+          "is_enabled": {
+            "type": "boolean",
+            "description": "Whether the waiting area is enabled",
+            "example": true
+          }
+        }
+      },
+      "DepartmentResource": {
+        "title": "Department",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
           "name": {
-            "description": "Appointment Detail",
+            "type": "string",
+            "example": "Department"
+          }
+        }
+      },
+      "File": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "file_name": {
+            "type": "string",
+            "description": "The name of the file",
+            "example": "file.pdf"
+          },
+          "url": {
+            "type": "string",
+            "description": "The url of the file",
+            "example": "https://www.google.com"
+          },
+          "path": {
+            "type": "string",
+            "description": "The path of the file",
+            "example": "/path/to/file.pdf"
+          }
+        }
+      },
+      "AppointmentDataFieldResource": {
+        "title": "Appointment Data Field",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The unique identifier of the appointment data field."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the appointment data field."
+          },
+          "type": {
+            "type": "string",
+            "description": "The type of the appointment data field."
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether the appointment data field is required."
+          }
+        }
+      },
+      "SiteCustomization": {
+        "title": "SiteCustomization",
+        "type": "object",
+        "properties": {
+          "logo": {
+            "$ref": "#/components/schemas/File"
+          },
+          "css_file": {
+            "$ref": "#/components/schemas/File"
+          },
+          "banner_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "font_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "body_link_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "terms_and_conditions_link": {
+            "type": "string",
+            "nullable": true
+          },
+          "privacy_policy_link": {
+            "type": "string",
+            "nullable": true
+          },
+          "support_center_link": {
+            "type": "string",
+            "nullable": true
+          },
+          "bsl_video_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "appointment_data_fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppointmentDataFieldResource"
+            }
+          },
+          "main_background_image": {
+            "$ref": "#/components/schemas/File"
+          },
+          "header_background_colour": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "navigation_text_colour": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "navigation_link_colour": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "heading_colour": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "subheading_colour": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "main_background_colour": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "waiting_area_welcome_message": {
+            "type": "string",
+            "nullable": true
+          },
+          "waiting_area_holding_message": {
+            "type": "string",
+            "nullable": true
+          },
+          "waiting_area_post_call_message": {
+            "type": "string",
+            "nullable": true
+          },
+          "waiting_area_sms_default_invite": {
+            "type": "string",
+            "nullable": true
+          },
+          "waiting_area_email_default_invite": {
+            "type": "string",
+            "nullable": true
+          },
+          "waiting_area_support_page_content": {
+            "type": "string",
+            "nullable": true
+          },
+          "footer_background_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "footer_font_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "footer_link_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "copyright_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "copyright_date": {
+            "type": "string",
+            "nullable": true
+          },
+          "cta_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "cta_font_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "date_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "date_font_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "report_text_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "report_bg_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "report_cta_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "report_cta_font_color": {
+            "type": "string",
+            "nullable": true,
+            "example": "#c11de2"
+          },
+          "use_light_video_controls": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TenantSupportInfo": {
+        "title": "TenantSupportInfo",
+        "type": "object",
+        "properties": {
+          "phone": {
             "type": "string"
           },
-          "tag": {
-            "description": "Tag to specify the type",
+          "email": {
             "type": "string"
           }
         }
       },
-      "NewPlant": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Plant"
+      "TenantResource": {
+        "title": "Tenant",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
           },
-          {
-            "required": [
-              "id"
-            ],
-            "type": "object",
-            "properties": {
-              "id": {
-                "description": "Identification number of the plant",
-                "type": "integer",
-                "format": "int64"
+          "name": {
+            "type": "string",
+            "example": "John Smith"
+          },
+          "slug": {
+            "type": "string",
+            "example": "john-smith"
+          },
+          "template": {
+            "type": "string",
+            "example": "sqod",
+            "enum": [
+              "sqod",
+              "gov",
+              "nhs"
+            ]
+          },
+          "site_customization": {
+            "$ref": "#/components/schemas/SiteCustomization"
+          },
+          "tenant_support_info": {
+            "$ref": "#/components/schemas/TenantSupportInfo"
+          }
+        }
+      },
+      "WaitingAreaResource": {
+        "title": "Waiting Area",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the waiting area",
+            "example": "Waiting Area 1"
+          },
+          "schedules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WaitingAreaScheduleResource"
+            },
+            "description": "Schedules associated with the waiting area"
+          },
+          "waiting_count": {
+            "type": "integer",
+            "description": "The number of people waiting in the waiting area",
+            "example": 5
+          },
+          "in_call_count": {
+            "type": "integer",
+            "description": "The number of people in a call in the waiting area",
+            "example": 2
+          },
+          "longest_waiting_time": {
+            "type": "integer",
+            "description": "The longest waiting time in the waiting area in seconds",
+            "example": 300
+          },
+          "attending_agents_count": {
+            "type": "integer",
+            "description": "The number of agents currently attending rooms",
+            "example": 2
+          },
+          "messages_count": {
+            "type": "integer",
+            "description": "The number of messages in the waiting area",
+            "example": 10
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date and time of the waiting area creation",
+            "example": "2021-01-30T08:30:00Z"
+          },
+          "department": {
+            "$ref": "#/components/schemas/DepartmentResource"
+          },
+          "Tenant": {
+            "$ref": "#/components/schemas/TenantResource"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Reference identifier for the waiting area",
+            "example": "WA-12345"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to access the waiting area",
+            "example": "https://example.com/waiting-areas/WA-12345"
+          },
+          "current_user_permission_level": {
+            "type": "string",
+            "description": "The current user level permission for the waiting area",
+            "example": "Read Only",
+            "nullable": true
+          },
+          "current_user_room_group_id": {
+            "type": "string",
+            "description": "The current user room group uuid",
+            "nullable": true,
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "AppointmentClaimantResource": {
+        "title": "Appointment Claimant",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the claimant"
+          },
+          "phone_number": {
+            "type": "string",
+            "description": "The phone number of the claimant"
+          },
+          "email": {
+            "type": "string",
+            "description": "The email of the claimant"
+          },
+          "date_of_birth": {
+            "type": "string",
+            "format": "date",
+            "description": "The date of birth of the claimant"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The id of the appointment data field"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "The value of the appointment data field"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "The name of the appointment data field"
+                },
+                "type": {
+                  "type": "string",
+                  "description": "The type of the appointment data field"
+                },
+                "required": {
+                  "type": "boolean",
+                  "description": "Whether the appointment data field is required"
+                }
               }
             }
           }
-        ]
+        }
       },
-      "Error": {
-        "required": [
-          "error",
-          "message"
-        ],
+      "Meeting": {
+        "title": "Meeting",
         "type": "object",
         "properties": {
-          "error": {
+          "id": {
+            "type": "string",
+            "description": "The id of the meeting",
+            "example": 1234567890
+          },
+          "room_name": {
+            "type": "string",
+            "description": "The name of the room",
+            "example": "Waiting Area 1"
+          },
+          "room_url": {
+            "type": "string",
+            "description": "The url of the room",
+            "example": "https://meet.jit.si/WaitingArea1"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of the start of the meeting",
+            "example": "2021-01-30T08:30:00Z"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of the end of the meeting",
+            "example": "2021-01-30T09:30:00Z"
+          }
+        }
+      },
+      "AppointmentResource": {
+        "title": "Appointment",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "reference": {
+            "type": "string",
+            "description": "The reference of the appointment",
+            "example": 123456789
+          },
+          "appointment_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of the appointment",
+            "example": "2021-01-01T00:00:00.000Z"
+          },
+          "duration_in_minutes": {
             "type": "integer",
-            "format": "int32"
+            "description": "The duration of the appointment in minutes",
+            "example": 60
+          },
+          "is_interpreter_needed": {
+            "type": "boolean",
+            "description": "Whether an interpreter is needed for the appointment",
+            "example": true
+          },
+          "interpreter_language": {
+            "type": "string",
+            "description": "The language of the interpreter",
+            "example": "English"
+          },
+          "status": {
+            "type": "string",
+            "description": "The status of the appointment",
+            "example": "scheduled",
+            "enum": [
+              "no_show",
+              "late",
+              "complete",
+              "being_seen",
+              "waiting",
+              "scheduled",
+              "cancelled"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "description": "The url of the appointment",
+            "example": "https://example.com/appointments/123456789"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time the appointment was created",
+            "example": "2021-01-01T00:00:00.000Z"
+          },
+          "cancelled_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time the appointment was cancelled",
+            "example": "2021-01-01T00:00:00.000Z"
+          },
+          "cancellation_reason": {
+            "type": "string",
+            "description": "The reason the appointment was cancelled",
+            "example": "The appointment was cancelled because..."
+          },
+          "department": {
+            "$ref": "#/components/schemas/DepartmentResource"
+          },
+          "claimant": {
+            "$ref": "#/components/schemas/AppointmentClaimantResource"
+          },
+          "meeting": {
+            "$ref": "#/components/schemas/Meeting"
+          },
+          "session_started_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time the appointment session was started",
+            "example": "2021-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "session_ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time the appointment session was ended",
+            "example": "2021-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "features_call_recording_enable": {
+            "type": "boolean",
+            "description": "Whether call recording is enabled",
+            "example": true
+          },
+          "features_breakout_room_enable": {
+            "type": "boolean",
+            "description": "Whether breakout rooms are enabled",
+            "example": true
+          },
+          "features_webcam_access_agent_enable": {
+            "type": "boolean",
+            "description": "Whether webcam access is enabled for agents",
+            "example": true
+          },
+          "features_webcam_access_claimant_enable": {
+            "type": "boolean",
+            "description": "Whether webcam access is enabled for claimants",
+            "example": true
+          },
+          "features_webcam_background_blurring_enable": {
+            "type": "boolean",
+            "description": "Whether webcam background blurring is enabled",
+            "example": true
+          },
+          "features_microphone_access_enable": {
+            "type": "boolean",
+            "description": "Whether microphone access is enabled",
+            "example": true
+          },
+          "features_screen_sharing_enable": {
+            "type": "boolean",
+            "description": "Whether screen sharing is enabled",
+            "example": true
+          },
+          "features_messages_chat_enable": {
+            "type": "boolean",
+            "description": "Whether chat messages are enabled",
+            "example": true
+          },
+          "features_participant_list_enable": {
+            "type": "boolean",
+            "description": "Whether the participant list is enabled",
+            "example": true
+          },
+          "features_bandwidth": {
+            "type": "string",
+            "description": "The bandwidth setting",
+            "example": "high"
+          },
+          "use_custom_post_call_redirect": {
+            "type": "boolean",
+            "description": "Whether a custom post call redirect is used",
+            "example": true
+          },
+          "custom_user_post_call_redirect_url": {
+            "type": "string",
+            "description": "The url of the custom post call redirect",
+            "example": "https://example.com/custom-post-call-redirect"
+          },
+          "custom_agent_post_call_redirect_url": {
+            "type": "string",
+            "description": "The url of the custom post call redirect for agents",
+            "example": "https://example.com/custom-agent-post-call-redirect"
+          }
+        }
+      },
+      "PaginatedUrl": {
+        "title": "Paginated Url",
+        "description": "HTTP link",
+        "type": "string",
+        "example": "https://dev.sqod.uk/path?page=1"
+      },
+      "MetaResource": {
+        "title": "Pagination Meta",
+        "type": "object",
+        "properties": {
+          "current_page": {
+            "type": "number"
+          },
+          "from": {
+            "type": "number"
+          },
+          "last_page": {
+            "type": "number"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "$ref": "#/components/schemas/PaginatedUrl"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "active": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "label",
+                "active"
+              ]
+            }
+          },
+          "path": {
+            "$ref": "#/components/schemas/PaginatedUrl"
+          },
+          "per_page": {
+            "type": "number"
+          },
+          "to": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "current_page",
+          "from",
+          "last_page",
+          "links",
+          "path",
+          "per_page",
+          "to",
+          "total"
+        ]
+      },
+      "LinkResource": {
+        "title": "Pagination Links",
+        "type": "object",
+        "properties": {
+          "first": {
+            "$ref": "#/components/schemas/PaginatedUrl"
+          },
+          "last": {
+            "$ref": "#/components/schemas/PaginatedUrl"
+          },
+          "prev": {
+            "$ref": "#/components/schemas/PaginatedUrl"
+          },
+          "next": {
+            "$ref": "#/components/schemas/PaginatedUrl"
+          }
+        },
+        "required": [
+          "first",
+          "last"
+        ]
+      },
+      "Claimant": {
+        "title": "Claimant",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the claimant",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "The email of the claimant",
+            "example": null
+          },
+          "phone_number": {
+            "type": "string",
+            "format": "phone",
+            "description": "The phone number of the claimant",
+            "example": 1234567890
+          },
+          "date_of_birth": {
+            "type": "string",
+            "format": "date",
+            "description": "The date of birth of the claimant",
+            "example": "2021-01-01"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/Uuid"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "The value of the claimant data field",
+                  "example": "value"
+                }
+              }
+            }
+          }
+        }
+      },
+      "FirstName": {
+        "title": "FirstName",
+        "description": "The user's first name",
+        "type": "string",
+        "example": "John"
+      },
+      "LastName": {
+        "title": "LastName",
+        "description": "The user's last name",
+        "type": "string",
+        "example": "Smith"
+      },
+      "Email": {
+        "title": "Email",
+        "type": "string",
+        "format": "email"
+      },
+      "UserResource": {
+        "title": "User",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "first_name": {
+            "$ref": "#/components/schemas/FirstName"
+          },
+          "last_name": {
+            "$ref": "#/components/schemas/LastName"
+          },
+          "email": {
+            "$ref": "#/components/schemas/Email"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "super-admin",
+              "Tenant-admin",
+              "department-admin",
+              "Tenant-scheduler",
+              "agent"
+            ]
+          },
+          "access_permission": {
+            "type": "string",
+            "enum": [
+              "appointment",
+              "waiting_area",
+              "both"
+            ]
+          },
+          "deleted_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "is_fully_deleted": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "first_name",
+          "last_name",
+          "email",
+          "role"
+        ]
+      },
+      "AppointmentMessageResource": {
+        "title": "Appointment Message",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "The message",
+            "example": "Hello World"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time the message was created",
+            "example": "2021-01-01T00:00:00.000Z"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/UserResource"
+          }
+        }
+      },
+      "NotificationType": {
+        "title": "Notification Type",
+        "type": "string",
+        "description": "The type of the notification",
+        "enum": [
+          "database.room-user-joined",
+          "database.appointment-claimant-joined"
+        ]
+      },
+      "NotifiableType": {
+        "title": "Notifiable Type",
+        "type": "string",
+        "description": "The type of the notifiable",
+        "enum": [
+          "App\\Models\\User"
+        ]
+      },
+      "NotificationResource": {
+        "title": "Notification",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "type": {
+            "$ref": "#/components/schemas/NotificationType"
+          },
+          "notifiable_type": {
+            "$ref": "#/components/schemas/NotifiableType"
+          },
+          "notifiable_id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "data": {
+            "type": "object",
+            "description": "The data of the notification"
+          },
+          "read_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tenant_id": {
+            "$ref": "#/components/schemas/Uuid"
+          }
+        }
+      },
+      "SiteCutomizationLabelsResource": {
+        "title": "SiteCustomization",
+        "type": "object",
+        "description": "This represents the site customization for a tenant.\nEach key is a label, and each value is a map of language to label value.\n",
+        "example": {
+          "call": "Call",
+          "appointment": "Appointment"
+        }
+      },
+      "WaitingAreaPermissions": {
+        "title": "Waiting Area Permissions",
+        "type": "string",
+        "enum": [
+          "Read Only",
+          "Basic",
+          "Full Access"
+        ]
+      },
+      "Translatable": {
+        "title": "Translatable",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "en": {
+                "type": "string",
+                "description": "The english translation"
+              },
+              "cy": {
+                "type": "string",
+                "description": "The welsh translation"
+              }
+            }
+          },
+          {
+            "type": "string",
+            "description": "This will be set to the locale that is set on the `Accept-Language` header (default is `en`)"
+          }
+        ]
+      },
+      "WaitingAreaDataFieldTypes": {
+        "title": "Waiting Area Data Field Types",
+        "type": "string",
+        "enum": [
+          "text",
+          "number",
+          "email"
+        ]
+      },
+      "WaitingAreaDataFieldResource": {
+        "title": "Waiting Area DataField",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the data field",
+            "example": "First Name"
+          },
+          "type": {
+            "type": "string",
+            "description": "The type of the datafield",
+            "example": "text"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether the datafield is required",
+            "example": true
+          }
+        }
+      },
+      "AssignedUserResource": {
+        "title": "Assigned User",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "first_name": {
+            "type": "string",
+            "example": "John"
+          },
+          "last_name": {
+            "type": "string",
+            "example": "Doe"
+          },
+          "permission": {
+            "type": "string",
+            "example": "Read Only",
+            "enum": [
+              "Read Only",
+              "Basic",
+              "Full Access"
+            ]
+          }
+        }
+      },
+      "AdditionalDepartmentResource": {
+        "title": "Additional Department",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Department"
+          },
+          "permission": {
+            "type": "string",
+            "example": "view"
+          }
+        }
+      },
+      "WaitingAreaAdditionalDocumentResource": {
+        "title": "Waiting Area Additional Document",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the file data field",
+            "example": "test.pdf"
+          },
+          "url": {
+            "type": "string",
+            "description": "The url of the file",
+            "example": "example.com/file.pdf"
+          }
+        }
+      },
+      "WaitingAreaDetailResource": {
+        "title": "Waiting Area Details",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the waiting area",
+            "example": "Waiting Area 1"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date and time of the waiting area creation",
+            "example": "2021-01-30T08:30:00Z"
+          },
+          "department": {
+            "$ref": "#/components/schemas/DepartmentResource"
+          },
+          "Tenant": {
+            "$ref": "#/components/schemas/TenantResource"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Reference identifier for the waiting area",
+            "example": "WA-12345"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to access the waiting area",
+            "example": "https://example.com/waiting-areas/WA-12345"
+          },
+          "data_fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WaitingAreaDataFieldResource"
+            },
+            "description": "Data fields associated with the waiting area"
+          },
+          "assigned_users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssignedUserResource"
+            },
+            "description": "Users assigned to the waiting area"
+          },
+          "additional_departments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdditionalDepartmentResource"
+            },
+            "description": "Additional departments that the waiting area is associated with"
+          },
+          "additional_documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WaitingAreaAdditionalDocumentResource"
+            }
+          },
+          "schedules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WaitingAreaScheduleResource"
+            },
+            "description": "Schedules associated with the waiting area"
+          },
+          "agent_post_call_redirent_link": {
+            "type": "string",
+            "description": "The link to redirect the agent to after a call",
+            "example": "https://www.google.com"
+          },
+          "claimant_post_call_redirent_link": {
+            "type": "string",
+            "description": "The link to redirect the claimant to after a call",
+            "example": "https://www.google.com"
+          },
+          "holding_page_redirent_link": {
+            "type": "string",
+            "description": "The link to redirect to for the holding page",
+            "example": "https://www.google.com"
+          },
+          "features_call_recording_enable": {
+            "type": "boolean",
+            "description": "Whether call recording is enabled",
+            "example": true
+          },
+          "features_breakout_room_enable": {
+            "type": "boolean",
+            "description": "Whether breakout rooms are enabled",
+            "example": true
+          },
+          "features_webcam_access_agent_enable": {
+            "type": "boolean",
+            "description": "Whether webcam access is enabled for agents",
+            "example": true
+          },
+          "features_webcam_access_claimant_enable": {
+            "type": "boolean",
+            "description": "Whether webcam access is enabled for claimants",
+            "example": true
+          },
+          "features_webcam_background_blurring_enable": {
+            "type": "boolean",
+            "description": "Whether webcam background blurring is enabled",
+            "example": true
+          },
+          "features_microphone_access_enable": {
+            "type": "boolean",
+            "description": "Whether microphone access is enabled",
+            "example": true
+          },
+          "features_screen_sharing_enable": {
+            "type": "boolean",
+            "description": "Whether screen sharing is enabled",
+            "example": true
+          },
+          "features_messages_chat_enable": {
+            "type": "boolean",
+            "description": "Whether chat messages are enabled",
+            "example": true
+          },
+          "features_participant_list_enable": {
+            "type": "boolean",
+            "description": "Whether the participant list is enabled",
+            "example": true
+          },
+          "features_disable_display_name": {
+            "type": "boolean",
+            "description": "Whether the participant list is enabled",
+            "example": true
+          },
+          "features_bandwidth": {
+            "type": "string",
+            "description": "The bandwidth setting",
+            "example": "high"
+          },
+          "messages_welcome_message": {
+            "type": "string",
+            "description": "The welcome message",
+            "example": "Welcome to the waiting area"
+          },
+          "messages_holding_message": {
+            "type": "string",
+            "description": "The holding message",
+            "example": "Please wait for your appointment"
+          },
+          "messages_post_call_message": {
+            "type": "string",
+            "description": "The post call message",
+            "example": "Thank you for your call"
+          },
+          "messages_sms_default_message": {
+            "type": "string",
+            "description": "The default SMS message",
+            "example": "Please join the waiting area"
+          },
+          "messages_email_default_message": {
+            "type": "string",
+            "description": "The default email message",
+            "example": "Please join the waiting area"
+          },
+          "theme_waiting_area_video_url": {
+            "type": "string",
+            "description": "The waiting area video URL",
+            "example": "https://www.youtube.com/watch?v=1234567890"
+          },
+          "theme_waiting_area_hold_music_url": {
+            "type": "string",
+            "description": "The waiting area hold music URL",
+            "example": "https://www.youtube.com/watch?v=1234567890"
+          },
+          "theme_color": {
+            "type": "string",
+            "description": "The theme color",
+            "example": "#000000"
+          },
+          "theme_hero_banner_file": {
+            "$ref": "#/components/schemas/File"
+          },
+          "support_page_content": {
+            "type": "string",
+            "description": "The support page content",
+            "example": "Support page content"
+          },
+          "current_user_permission_level": {
+            "type": "string",
+            "description": "The current user level permission for the waiting area",
+            "example": "Read Only",
+            "nullable": true
+          },
+          "alert_phone_number": {
+            "type": "string",
+            "description": "The phone number to send alerts to",
+            "example": 447123456789,
+            "nullable": true
+          },
+          "alert_time_in_minutes": {
+            "type": "integer",
+            "description": "The time in minutes to send alerts after the user joined the room",
+            "example": 5,
+            "nullable": true
+          },
+          "current_user_room_group_id": {
+            "type": "string",
+            "description": "The current user room group uuid",
+            "nullable": true,
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "SingleUseLink": {
+        "title": "link",
+        "description": "Single Use link to access Room",
+        "type": "string",
+        "example": "asdfsd2223r2f2r3r3ff432edrf432d32dd3re"
+      },
+      "CallerDetailResource": {
+        "title": "Caller Details",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the caller",
+            "example": "John Smith"
+          },
+          "phone_number": {
+            "type": "string",
+            "description": "The phone number of the caller",
+            "example": 1234567890
+          },
+          "date_of_birth": {
+            "type": "string",
+            "format": "date",
+            "description": "The date of birth of the caller",
+            "example": "2000-01-01"
+          },
+          "accepted_terms_and_conditions": {
+            "type": "boolean",
+            "description": "Whether the caller has accepted the terms and conditions",
+            "example": true
+          },
+          "is_connected": {
+            "type": "boolean",
+            "description": "Whether the caller is connected",
+            "example": true
+          },
+          "data_fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The id of the data field"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "The value of the data field"
+                }
+              }
+            }
+          }
+        }
+      },
+      "RoomUserHistoryResource": {
+        "title": "RoomUserHistory",
+        "type": "object",
+        "properties": {
+          "joined_at": {
+            "type": "string",
+            "description": "The time when the user joined the room.",
+            "example": "2021-04-22T11:00:00Z"
+          },
+          "left_at": {
+            "type": "string",
+            "description": "The time when the user left the room.",
+            "example": "2021-04-22T11:00:00Z"
+          },
+          "total_duration_in_minutes": {
+            "type": "integer",
+            "description": "The total duration of the user in minutes.",
+            "example": 10
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResource"
+          }
+        }
+      },
+      "RoomDetailResource": {
+        "title": "Room Details",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "status": {
+            "type": "string",
+            "description": "The status of the room",
+            "example": "waiting",
+            "enum": [
+              "waiting",
+              "being-seen",
+              "on-hold",
+              "complete"
+            ]
+          },
+          "is_ready": {
+            "type": "boolean",
+            "description": "Whether the room is ready to be entered by the claimant",
+            "example": true
+          },
+          "is_group": {
+            "type": "boolean",
+            "description": "Whether the room is a group room",
+            "example": false
+          },
+          "meeting": {
+            "$ref": "#/components/schemas/Meeting"
+          },
+          "breakout_room_meeting": {
+            "$ref": "#/components/schemas/Meeting"
+          },
+          "waiting_started_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of when the waiting started",
+            "example": "2021-01-30T08:30:00Z"
+          },
+          "waiting_ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of when the waiting ended",
+            "example": "2021-01-30T09:30:00Z"
+          },
+          "waiting_duration": {
+            "type": "integer",
+            "description": "The duration of the waiting in seconds",
+            "example": 3600
+          },
+          "on_hold_started_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of when the on hold started",
+            "example": "2021-01-30T08:30:00Z"
+          },
+          "on_hold_ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of when the on hold ended",
+            "example": "2021-01-30T09:30:00Z"
+          },
+          "on_hold_duration": {
+            "type": "integer",
+            "description": "The duration of the on hold in seconds",
+            "example": 3600
+          },
+          "call_started_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of when the call started",
+            "example": "2021-01-30T08:30:00Z"
+          },
+          "call_ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of when the call ended",
+            "example": "2021-01-30T09:30:00Z"
+          },
+          "call_duration": {
+            "type": "integer",
+            "description": "The duration of the call in seconds",
+            "example": 3600
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date and time of the room creation",
+            "example": "2021-01-30T08:30:00Z"
+          },
+          "callers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CallerDetailResource"
+            },
+            "description": "Callers associated with the room"
+          },
+          "url": {
+            "type": "string",
+            "description": "The URL of the room",
+            "example": "https://example.com/rooms/123"
+          },
+          "attending_hosts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoomUserHistoryResource"
+            }
+          }
+        }
+      },
+      "WaitingAreaMessageResource": {
+        "title": "Waiting Area Message",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date and time of the message creation",
+            "example": "2021-01-30T08:30:00Z"
+          },
+          "message": {
+            "type": "string",
+            "description": "The message to send",
+            "example": "Hello"
+          },
+          "room_id": {
+            "type": "string",
+            "description": "The room id where the message is sent. If not null, the message is sent to the room",
+            "example": "123e4567-e89b-12d3-a456-426614174000",
+            "nullable": true
+          },
+          "sender": {
+            "$ref": "#/components/schemas/UserResource"
+          }
+        }
+      },
+      "WaitingAreaPublicDetailResource": {
+        "title": "Waiting Area Public Details",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the waiting area",
+            "example": "Waiting Area 1"
+          },
+          "queue_count": {
+            "type": "integer",
+            "description": "The number of claimants in the waiting area",
+            "example": 1
+          },
+          "is_closed": {
+            "type": "boolean",
+            "description": "Whether the waiting area is closed",
+            "example": false
+          },
+          "schedules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WaitingAreaScheduleResource"
+            },
+            "description": "Schedules associated with the waiting area"
+          },
+          "next_opening_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of the next opening time",
+            "example": "2021-01-30T08:30:00Z"
+          },
+          "average_waiting_time_in_seconds": {
+            "type": "integer",
+            "description": "The average waiting time in seconds",
+            "example": 60
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date and time of the waiting area creation",
+            "example": "2021-01-30T08:30:00Z"
+          },
+          "data_fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WaitingAreaDataFieldResource"
+            },
+            "description": "Data fields associated with the waiting area"
+          },
+          "additional_documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WaitingAreaAdditionalDocumentResource"
+            }
+          },
+          "claimant_post_call_redirent_link": {
+            "type": "string",
+            "description": "The link to redirect the claimant to after a call",
+            "example": "https://www.google.com"
+          },
+          "holding_page_redirent_link": {
+            "type": "string",
+            "description": "The link to redirect to for the holding page",
+            "example": "https://www.google.com"
+          },
+          "features_call_recording_enable": {
+            "type": "boolean",
+            "description": "Whether call recording is enabled",
+            "example": true
+          },
+          "features_breakout_room_enable": {
+            "type": "boolean",
+            "description": "Whether breakout rooms are enabled",
+            "example": true
+          },
+          "features_webcam_access_agent_enable": {
+            "type": "boolean",
+            "description": "Whether webcam access is enabled for agents",
+            "example": true
+          },
+          "features_webcam_access_claimant_enable": {
+            "type": "boolean",
+            "description": "Whether webcam access is enabled for claimants",
+            "example": true
+          },
+          "features_webcam_background_blurring_enable": {
+            "type": "boolean",
+            "description": "Whether webcam background blurring is enabled",
+            "example": true
+          },
+          "features_microphone_access_enable": {
+            "type": "boolean",
+            "description": "Whether microphone access is enabled",
+            "example": true
+          },
+          "features_screen_sharing_enable": {
+            "type": "boolean",
+            "description": "Whether screen sharing is enabled",
+            "example": true
+          },
+          "features_messages_chat_enable": {
+            "type": "boolean",
+            "description": "Whether chat messages are enabled",
+            "example": true
+          },
+          "features_participant_list_enable": {
+            "type": "boolean",
+            "description": "Whether the participant list is enabled",
+            "example": true
+          },
+          "features_disable_display_name": {
+            "type": "boolean",
+            "description": "Whether the participant list is enabled",
+            "example": true
+          },
+          "features_bandwidth": {
+            "type": "string",
+            "description": "The bandwidth setting",
+            "example": "high"
+          },
+          "messages_welcome_message": {
+            "type": "string",
+            "description": "The welcome message",
+            "example": "Welcome to the waiting area"
+          },
+          "messages_holding_message": {
+            "type": "string",
+            "description": "The holding message",
+            "example": "Please wait for your appointment"
+          },
+          "messages_post_call_message": {
+            "type": "string",
+            "description": "The post call message",
+            "example": "Thank you for your call"
+          },
+          "messages_sms_default_message": {
+            "type": "string",
+            "description": "The default SMS message",
+            "example": "Please join the waiting area"
+          },
+          "messages_email_default_message": {
+            "type": "string",
+            "description": "The default email message",
+            "example": "Please join the waiting area"
+          },
+          "theme_waiting_area_video_url": {
+            "type": "string",
+            "description": "The waiting area video URL",
+            "example": "https://www.youtube.com/watch?v=1234567890"
+          },
+          "theme_waiting_area_hold_music_url": {
+            "type": "string",
+            "description": "The waiting area hold music URL",
+            "example": "https://www.youtube.com/watch?v=1234567890"
+          },
+          "theme_color": {
+            "type": "string",
+            "description": "The theme color",
+            "example": "#000000"
+          },
+          "theme_hero_banner_file": {
+            "$ref": "#/components/schemas/File"
+          },
+          "support_page_content": {
+            "type": "string",
+            "description": "The support page content",
+            "example": "Support page content"
+          }
+        }
+      },
+      "RoomResource": {
+        "title": "Room",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "status": {
+            "type": "string",
+            "description": "The status of the room",
+            "example": "waiting",
+            "enum": [
+              "waiting",
+              "being-seen",
+              "on-hold",
+              "complete"
+            ]
+          },
+          "is_ready": {
+            "type": "boolean",
+            "description": "Whether the room is ready to be entered by the claimant",
+            "example": true
+          },
+          "waiting_started_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of when the waiting started",
+            "example": "2021-01-30T08:30:00Z"
+          },
+          "waiting_ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of when the waiting ended",
+            "example": "2021-01-30T09:30:00Z"
+          },
+          "waiting_duration": {
+            "type": "integer",
+            "description": "The duration of the waiting in seconds",
+            "example": 3600
+          },
+          "on_hold_started_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of when the on hold started",
+            "example": "2021-01-30T08:30:00Z"
+          },
+          "on_hold_ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of when the on hold ended",
+            "example": "2021-01-30T09:30:00Z"
+          },
+          "on_hold_duration": {
+            "type": "integer",
+            "description": "The duration of the on hold in seconds",
+            "example": 3600
+          },
+          "call_started_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of when the call started",
+            "example": "2021-01-30T08:30:00Z"
+          },
+          "call_ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of when the call ended",
+            "example": "2021-01-30T09:30:00Z"
+          },
+          "call_duration": {
+            "type": "integer",
+            "description": "The duration of the call in seconds",
+            "example": 3600
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date and time of the room creation",
+            "example": "2021-01-30T08:30:00Z"
+          },
+          "callers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CallerDetailResource"
+            },
+            "description": "Callers associated with the room"
+          },
+          "assigned_users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserResource"
+            },
+            "description": "Users assigned to the room"
+          },
+          "url": {
+            "type": "string",
+            "description": "The URL of the room",
+            "example": "https://example.com/rooms/123"
+          },
+          "attending_hosts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoomUserHistoryResource"
+            }
+          }
+        }
+      },
+      "File-2": {
+        "title": "File Request",
+        "type": "string",
+        "format": "binary",
+        "description": "The file to upload",
+        "example": "test.txt"
+      },
+      "SingleUseLinkResource": {
+        "type": "object",
+        "properties": {
+          "link": {
+            "type": "string",
+            "description": "The unique link generated for the waiting area",
+            "example": "https://example.com/waiting-area/abcd1234"
+          },
+          "is_used": {
+            "type": "boolean",
+            "description": "Indicates if the link has been used",
+            "example": false
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time when the link will expire",
+            "example": "2023-01-30T08:30:00Z"
+          },
+          "is_expired": {
+            "type": "boolean",
+            "description": "Indicates if the link has expired",
+            "example": false
+          }
+        },
+        "required": [
+          "link",
+          "is_used",
+          "expires_at",
+          "is_expired"
+        ]
+      },
+      "ValidationRowResult": {
+        "title": "ValidationRowResult",
+        "description": "The result of validating a row in a csv file",
+        "type": "object",
+        "properties": {
+          "is_valid": {
+            "type": "boolean",
+            "description": "Whether the row is valid",
+            "example": true
+          },
+          "errors": {
+            "type": "array",
+            "description": "The errors in the row",
+            "items": {
+              "type": "string",
+              "example": "The first name is required"
+            }
+          },
+          "data": {
+            "type": "object",
+            "description": "The data in the row"
           }
         }
       }
     },
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer"
+    "responses": {
+      "403-Forbidden": {
+        "description": "The server understood the request but refuses to authorize it.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "description": "Authorization failed",
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "This action is unauthorized."
+                }
+              },
+              "required": [
+                "message"
+              ]
+            }
+          }
+        }
+      },
+      "204-NoContent": {
+        "description": "The server has successfully fulfilled the request and there is no additional content to send in the response payload body."
+      },
+      "422-UnprocessableEntity": {
+        "description": "The server understands the content type of the request entity (hence a 415 Unsupported Media Type status code is inappropriate), and the syntax of the request entity is correct (thus a 400 Bad Request status code is inappropriate) but was unable to process the contained instructions.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "description": "Precondition Failed",
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "errors": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "message",
+                "errors"
+              ],
+              "example": {
+                "message": "The given data was invalid.",
+                "errors": {
+                  "lines.0": [
+                    "The lines.0 must be a valid basket line."
+                  ],
+                  "lines.0.quantity": [
+                    "quantity too high."
+                  ]
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
