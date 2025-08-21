@@ -42,11 +42,18 @@ A successful response looks like this:
 
 `token_type`  – Always `"Bearer"`
 
-4. Call the API with the Token
+##4. Call the API with the Token
 
 When sending a request you'll need to include the token in the Authorization header when calling the API:
 
 `Authorization: Bearer eyJraWQiOiJhb...`
+
+Example Request
+
+```
+GET https://api.yourcompany.com/v1/resource
+Authorization: Bearer eyJraWQiOiJhb...
+```
 
 ## Properties
 
