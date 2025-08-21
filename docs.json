@@ -69,7 +69,9 @@
             "group": "Waiting Areas",
             "pages": [
               "api-reference/endpoint/listwa",
-              "api-reference/endpoint/waid"
+              "api-reference/endpoint/waid",
+              "api-reference/endpoint/updatewa",
+              "api-reference/endpoint/deletewa"
             ]
           }
         ]
