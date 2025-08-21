@@ -71,7 +71,8 @@
               "api-reference/endpoint/listwa",
               "api-reference/endpoint/waid",
               "api-reference/endpoint/updatewa",
-              "api-reference/endpoint/deletewa"
+              "api-reference/endpoint/deletewa",
+              "api-reference/endpoint/wainvite"
             ]
           }
         ]
