@@ -26,7 +26,7 @@ Authorization: Basic <base64(client_id:client_secret)>
 ```
 Including the following request body:
 ```json
-"grant_type": "client_credentials"
+{"grant_type": "client_credentials"}
 ```
 
 3. Receive an Access Token
@@ -49,7 +49,9 @@ A successful response looks like this:
 
 When sending a request you'll need to include the token in the Authorization header when calling the API:
 
-`Authorization: Bearer eyJraWQiOiJhb...`
+```json
+{Authorization: Bearer eyJraWQiOiJhb...}
+```
 
 Example Request
 
