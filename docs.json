@@ -19,13 +19,6 @@
               "index",
               "essentials/settings"
             ]
-          },
-          {
-            "group": "Customization",
-            "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
           }
         ]
       },
