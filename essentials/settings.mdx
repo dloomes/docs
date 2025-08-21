@@ -21,6 +21,15 @@ Send a `POST` request to the SQOD token endpoint:
 Content-Type: application/x-www-form-urlencoded
 Authorization: Basic <base64(client_id:client_secret)>
 ```
+Including the following request body:
+```grant_type=client_credentials```
+
+3. Receive an Access TokenA successful response looks like this:
+```{
+  "access_token": "eyJraWQiOiJhb...",
+  "expires_in": 3600,
+  "token_type": "Bearer"
+}```
 ## Properties
 
 <ResponseField name="name" type="string" required>
