@@ -2804,7 +2804,7 @@
     "securitySchemes": {
       "Cognito": {
         "type": "http",
-        "description": "See https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-with-identity-providers.html for request and response details",
+        "description": "Provide a Bearer Token",
         "scheme": "bearer"
       }
     },
