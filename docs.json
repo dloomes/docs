@@ -48,7 +48,8 @@
               "api-reference/endpoint/waid",
               "api-reference/endpoint/updatewa",
               "api-reference/endpoint/deletewa",
-              "api-reference/endpoint/wainvite"
+              "api-reference/endpoint/wainvite",
+              "api-reference/endpoint/appointmentmessage"
             ]
           }
         ]
