@@ -73,8 +73,9 @@
               "api-reference/endpoint/delete",
               "api-reference/endpoint/getbyid",
               "api-reference/endpoint/updateappointment"
-      }
+      
         ]
+          }
       }
     ],
     "global": {
