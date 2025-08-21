@@ -161,7 +161,7 @@
         "type": "object",
         "properties": {
           "name": {
-            "description": "The name of the plant",
+            "description": "Appointment Detail",
             "type": "string"
           },
           "tag": {
