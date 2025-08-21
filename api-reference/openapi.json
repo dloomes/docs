@@ -16,8 +16,14 @@
   "servers": [
     
     {
-      "url": "https://*.dev.sqod.co.uk",
-      "description": "develop"
+      "url": "{customerRef}",
+      "description": "SQOD Customer Server",
+      "variables": {
+        "customerRef": {
+          "default": "https://demo.app.sqod.co.uk",
+          "description": "Enter your customer URL"
+        }
+      }
     }
   ],
   "paths": {
