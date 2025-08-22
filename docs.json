@@ -67,7 +67,8 @@
   },
   "logo": {
     "light": "/logo/SQOD.png",
-    "dark": "/logo/SQOD.png"
+    "dark": "/logo/SQOD.png",
+    "href": "https://sqod.co.uk"
   },
   "navbar": {
     "links": [
