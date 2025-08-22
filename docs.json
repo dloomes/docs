@@ -40,7 +40,11 @@
               "api-reference/endpoint/getbyid",
               "api-reference/endpoint/updateappointment",
               "api-reference/endpoint/appointmentmessage"
-            ]
+            {"group": "SubGroup",
+              "pages": ["api-reference/endpoint/deletewa",
+              "api-reference/endpoint/wainvite"]
+            
+            }]
           },
           {
             "group": "Waiting Areas",
