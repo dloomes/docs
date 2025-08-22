@@ -66,8 +66,8 @@
     }
   },
   "logo": {
-    "light": "/logo/SQOD logo.svg",
-    "dark": "/logo/SQOD logo.svg"
+    "light": "/logo/SQODlogo.svg",
+    "dark": "/logo/SQODlogo.svg"
   },
   "navbar": {
     "links": [
