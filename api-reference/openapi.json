@@ -124,7 +124,7 @@
       },
       "post": {
         "summary": "Create appointment",
-        "description": "Create appointment",
+        "description": "Create an appointment",
         "operationId": "postCreateAppointment",
         "tags": [
           "Appointment"
@@ -276,7 +276,7 @@
       ],
       "get": {
         "summary": "Get specific appointment",
-        "description": "Get specific appointment by ID",
+        "description": "Get a specific appointment by ID",
         "operationId": "getAppointmentById",
         "tags": [
           "Appointment"
@@ -309,7 +309,7 @@
       },
       "patch": {
         "summary": "Update specific appointment",
-        "description": "Update specific appointment by ID",
+        "description": "Update a specific appointment by ID",
         "operationId": "patchAppointmentById",
         "parameters": [
           {
@@ -469,7 +469,7 @@
       ],
       "post": {
         "summary": "Cancel specific appointment",
-        "description": "Cancel specific appointment by ID",
+        "description": "Cancel a specific appointment by ID",
         "operationId": "postCancelAppointment",
         "tags": [
           "Appointment"
@@ -562,7 +562,7 @@
       },
       "get": {
         "summary": "Get appointment messages",
-        "description": "Get appointment messages",
+        "description": "Get a list of appointment messages",
         "operationId": "getAppointmentMessages",
         "parameters": [
           {
@@ -934,7 +934,7 @@
     "/api/v1/waiting-areas": {
       "get": {
         "summary": "Get waiting areas",
-        "description": "Get list of waiting areas based on the user's role",
+        "description": "Get a list of waiting areas based on the user's role",
         "operationId": "getWaitingAreas",
         "tags": [
           "Waiting Area"
@@ -983,7 +983,7 @@
       },
       "post": {
         "summary": "Create a waiting area",
-        "description": "Create a waiting area\n\nNote:\n  - The `theme_hero_banner_file` file will be uploaded using a separate endpoint.\n",
+        "description": "Create a waiting area",
         "operationId": "postCreateWaitingArea",
         "tags": [
           "Waiting Area"
@@ -1250,7 +1250,7 @@
       ],
       "get": {
         "summary": "Get waiting area by id",
-        "description": "Get waiting area by id",
+        "description": "Get a waiting area by id",
         "operationId": "getWaitingAreaById",
         "tags": [
           "Waiting Area"
@@ -1283,7 +1283,7 @@
       },
       "patch": {
         "summary": "Update a waiting area",
-        "description": "Update a waiting area",
+        "description": "Update a waiting area by ID",
         "operationId": "patchWaitingArea",
         "parameters": [
           {
@@ -1628,7 +1628,7 @@
       ],
       "post": {
         "summary": "Create a Waiting Area Message",
-        "description": "Create a Waiting Area Message",
+        "description": "Create a Message to be displayed whilst a caller is in the Waiting area",
         "operationId": "postCreateWaitingAreaMessage",
         "tags": [
           "Waiting Area Messages"
@@ -1680,7 +1680,7 @@
       },
       "get": {
         "summary": "Get Waiting Area Messages",
-        "description": "Get Waiting Area Messages",
+        "description": "Get a list of Waiting Area Messages",
         "operationId": "getWaitingAreaMessages",
         "parameters": [
           {
@@ -1781,7 +1781,7 @@
       ],
       "get": {
         "summary": "Get rooms that are in progress only",
-        "description": "Get rooms that are in progress only",
+        "description": "Get a list of calls that are in progress in a specific waiting area",
         "operationId": "listRooms",
         "tags": [
           "Waiting Area",
