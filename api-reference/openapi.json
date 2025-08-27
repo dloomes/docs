@@ -510,7 +510,7 @@
       ],
       "post": {
         "summary": "Create appointment message",
-        "description": "Create appointment message",
+        "description": "Send a message to a caller whilst waiting for a call to start e.g. We're running a few minutes late",
         "operationId": "postAppointmentMessage",
         "tags": [
           "Appointment Message"
