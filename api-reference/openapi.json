@@ -738,6 +738,103 @@
           }
         }
       }
+    },,
+    "/api/v1/appointments/{id}/invite": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "example": "{{APPOINTMENT_ID}}",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "summary": "Send Appointment Invite",
+        "parameters": [
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": false,
+            "example": "application/json",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "headers": {
+              "Server": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "nginx"
+              },
+              "Connection": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "keep-alive"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "no-cache, private"
+              },
+              "Date": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Wed, 25 Oct 2023 13:43:50 GMT"
+              },
+              "X-RateLimit-Limit": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "60"
+              },
+              "X-RateLimit-Remaining": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "58"
+              },
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "*"
+              }
+            },
+            "description": "Send Appointment Invite"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "invite_message": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "type": "email",
+                "invite_message": "Sample Message"
+              }
+            }
+          }
+        }
+      }
     },
     "/api/v1/notifications": {
       "get": {
