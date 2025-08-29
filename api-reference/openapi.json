@@ -739,7 +739,7 @@
         }
       }
     },,
-    "/api/v1/appointments/{id}/invite": {
+    "/api/v1/appointments/{appointment}/invite": {
       "parameters": [
         {
           "name": "id",
