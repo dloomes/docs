@@ -751,11 +751,11 @@
           }
         }
       }
-    },,
+    },
     "/api/v1/appointments/{appointment}/invite": {
       "parameters": [
         {
-          "name": "id",
+          "name": "appointment",
           "in": "path",
           "required": true,
           "example": "{{APPOINTMENT_ID}}",
