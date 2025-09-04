@@ -51,11 +51,16 @@
       }
     },
     "/oauth2/token": {
-      "POST":{
+      "post":{
         "summary": "Request a new token",
         "description": "Generates a new token to be used for authentication",
-        "tags":[],
-        "parameters": []
+        "tags":["Auth"],
+        "parameters": [],
+        "responses":{
+          "200": {
+            "description": "The request was successful"
+          }
+        }
       }
     },
     "/api/v1/appointments": {
