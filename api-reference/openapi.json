@@ -50,6 +50,14 @@
         }
       }
     },
+    "/oauth2/token": {
+      "POST":{
+        "summary": "Request a new token",
+        "description": "Generates a new token to be used for authentication",
+        "tags":[],
+        "parameters": []
+      }
+    },
     "/api/v1/appointments": {
       "get": {
         "summary": "Get appointments",
