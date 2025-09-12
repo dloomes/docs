@@ -50,44 +50,21 @@
         }
       }
     },
-    "/oauth2/token": {
-      "post":{
+     "/oauth2/token": {
+      "post": {
         "summary": "Request a new token",
         "description": "Generates a new token to be used for authentication",
-        "tags":["Auth"],
-        "parameters": [
+        "tags": [
+          "Auth"
+        ],
+        "security": [
           {
-           "name": "Accept",
-            "in": "header",
-            "required": false,
-            "example": "application/json",
-            "schema": {
-              "type": "string"
-          }
-          },
-          {
-            "name": "Content-Type",
-            "in": "header",
-            "required": false,
-            "example": "application/json",
-            "schema": {
-              "type": "string"
-          }
+            "basicAuth": []
           }
         ],
-        "responses":{
+        "responses": {
           "200": {
             "description": "The request was successful"
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              },
-              "example": null
-            }
           }
         }
       }
@@ -2945,7 +2922,12 @@
         "type": "http",
         "description": "Provide a Bearer Token",
         "scheme": "bearer"
+      },
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic"
       }
+    },
     },
     "parameters": {
       "Token": {
