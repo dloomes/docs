@@ -66,6 +66,11 @@
             "basicAuth": []
           }
         ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Token"
+          }
+        ],
         "responses": {
           "200": {
             "description": "The request was successful"
