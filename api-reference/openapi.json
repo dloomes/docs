@@ -24,6 +24,10 @@
           "description": "Enter your customer URL"
         }
       }
+    },
+    {
+      "url": "https://auth.app.sqod.co.uk",
+      "description": "SQOD Authentication Server"
     }
   ],
   "paths": {
