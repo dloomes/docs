@@ -55,7 +55,18 @@
         "summary": "Request a new token",
         "description": "Generates a new token to be used for authentication",
         "tags":["Auth"],
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "start_at",
+            "in": "query",
+            "description": "The start datetime to filter appointment date",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2021-01-01T00:00:00.000Z"
+          }
+        ],
         "responses":{
           "200": {
             "description": "The request was successful"
