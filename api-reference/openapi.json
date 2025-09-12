@@ -2934,6 +2934,7 @@
       },
       "basicAuth": {
         "type": "http",
+        "description": "Request a new bearer token",
         "scheme": "basic"
       }
     },
