@@ -68,7 +68,7 @@
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/Token"
+            "$ref": "#/components/parameters/ClientID"
           }
         ],
         "responses": {
@@ -2944,6 +2944,24 @@
         "name": "token",
         "in": "query",
         "description": "The cognito token of the user",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ClientID": {
+        "name": "clientid",
+        "in": "query",
+        "description": "The clientid for the customer",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ClientSecret": {
+        "name": "clientsecret",
+        "in": "query",
+        "description": "The client secret for the customer",
         "required": true,
         "schema": {
           "type": "string"
