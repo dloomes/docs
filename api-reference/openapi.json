@@ -74,6 +74,9 @@
         "responses": {
           "200": {
             "description": "The request was successful"
+          },
+          "405": {
+            "description": "Denied"
           }
         }
       }
