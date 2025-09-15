@@ -55,7 +55,7 @@
       }
     },
      "/oauth2/token": {
-      "get": {
+      "post": {
         "summary": "Request a new token",
         "security": [
           {
