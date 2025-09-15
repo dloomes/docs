@@ -57,10 +57,6 @@
      "/oauth2/token": {
       "post": {
         "summary": "Request a new token",
-        "description": "Generates a new token to be used for authentication",
-        "tags": [
-          "Auth"
-        ],
         "security": [
           {
             "basicAuth": []
@@ -75,8 +71,8 @@
           "200": {
             "description": "The request was successful"
           },
-          "405": {
-            "description": "Denied"
+          "401": {
+            "description": "Unauthorized"
           }
         }
       }
