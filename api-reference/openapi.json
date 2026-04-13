@@ -4,8 +4,8 @@
     "title": "SQOD API",
     "version": "1.0.0",
     "contact": {
-      "name": "Ed Marshall",
-      "email": "ed.marshall@hedgehoglab.com"
+      "name": "Daniel Loomes",
+      "email": "dloomes@involve.vc"
     },
     "description": "RESTful API specification for involve-api.\n\nAll endpoints are secured (unless indicated otherwise) and need a valid Bearer token passed in the Authorization header of the request.\n\nResponse model conventions:\n- Fields marked as \"required\" will have a value\n- Fields not marked as \"required\" can have a value, but may also be null, or may not be included in the response at all\n- Fields of type array may be empty (array with no items) unless validation indicates otherwise, however they are always \"required\"\n\nPatch update conventions:\n- Send only the fields you want to update with their new values\n- Fields marked as \"required\" cannot be unset/set to null, however they can be omitted from the request body if they should be left unchanged\n- The same rules also apply to fields inside nested objects\n\nGet collection conventions:\n- All paginated lists accept page and per_page query string parameters\n\nOther notes:\n- For sub-resources of the User resource, 'me' alias can be used instead of the user ID to work with currently authenticated user.\n- Expect 401 response in case of authentication problems, e.g. expired or invalid tokens.\n- Expect 403 response in case of authorisation problems, e.g. user doesn't have enough privileges to access a given resource.",
     "license": {
