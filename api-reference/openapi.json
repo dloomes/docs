@@ -2936,7 +2936,7 @@
         "description": "Request a new bearer token",
         "scheme": "basic"
       }
-    },
+    }
     },
     "parameters": {
       "Token": {
