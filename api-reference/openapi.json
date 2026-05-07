@@ -73,7 +73,11 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "operationId": "postRequestToken",
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/api/v1/appointments": {
