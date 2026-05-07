@@ -14,7 +14,6 @@
     }
   },
   "servers": [
-    
     {
       "url": "{customerRef}",
       "description": "SQOD Customer Server",
@@ -54,7 +53,7 @@
         }
       }
     },
-     "/oauth2/token": {
+    "/oauth2/token": {
       "post": {
         "summary": "Request a new token",
         "security": [
@@ -2936,7 +2935,6 @@
         "description": "Request a new bearer token",
         "scheme": "basic"
       }
-    }
     },
     "parameters": {
       "Token": {
@@ -5017,3 +5015,4 @@
       }
     }
   }
+}
