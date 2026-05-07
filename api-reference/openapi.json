@@ -34,7 +34,7 @@
     "/admin/sso/login": {
       "get": {
         "summary": "Login in Nova via token",
-        "description": "Redirect login to Nova Panel using Cognito Token",
+        "description": "Redirect login to Nova Panel using Cognito Tokens",
         "operationId": "getSSOLogin",
         "tags": [
           "Nova"
